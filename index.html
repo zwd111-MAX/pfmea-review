@@ -255,9 +255,13 @@ function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.o
 function parsePfmea(wb){
   let sh=wb.SheetNames.find(n=>/pfmea/i.test(n)&&!/评分|ap/i.test(n.toLowerCase()))||wb.SheetNames[0];
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:''});
+  // 找标题行：必须同时含'失效模式'/'FM' 和 '严重度'/'频度'（防止标题页误判）
   let hdr=10;
-  for(let r=0;r<Math.min(20,raw.length);r++){
-    if(raw[r].some(v=>String(v).includes('失效模式')||v==='FM')){hdr=r;break}
+  for(let r=0;r<Math.min(25,raw.length);r++){
+    const row=raw[r]||[];
+    const hasFM=row.some(v=>String(v).includes('失效模式')||String(v).includes('Failure Mode'));
+    const hasSev=row.some(v=>String(v).includes('严重度')||String(v).includes('Severity')||String(v).includes('频度')||String(v).includes('探测度'));
+    if(hasFM&&hasSev){hdr=r;break}
   }
   const hr=raw[hdr]||[];
   const PATS={FM:['失效模式','FM'],FC:['失效原因','FC','工作要素的失效原因'],
@@ -265,8 +269,9 @@ function parsePfmea(wb){
     S:['严重度','FE严重度'],O:['频度','FC频度'],D:['探测度'],AP:['PFMEA AP','优先','AP'],
     IMP_PC:['预防措施','改进预防'],IMP_DC:['探测措施','改进探测'],
     PROCESS:['过程步骤','功能和产品','过程项'],M5E:['5M1E','工作要素']};
-  const DEF={FM:10,FC:11,PC:12,DC:14,S:9,O:13,D:17,AP:18,IMP_PC:20,IMP_DC:21,PROCESS:5,M5E:4};
-  // X1200 专用列偏移（FM在col10而非col11）
+  // AP优先用更新后AP列（col30 for P40格式）
+  const AP_PATS=['PFMEA AP','优先','AP'];
+  const DEF={FM:10,FC:11,PC:12,DC:14,S:9,O:13,D:17,AP:18,IMP_PC:20,IMP_DC:21,PROCESS:1,M5E:4};
   const col={};
   for(const[k,pts]of Object.entries(PATS)){col[k]=DEF[k];for(let c=0;c<hr.length;c++){if(pts.some(p=>String(hr[c]||'').includes(p))){col[k]=c;break}}}
   const rows=[],procs=new Set();
@@ -287,7 +292,9 @@ function parsePfmea(wb){
       AP:String(row[col.AP]||'').trim(),IMP_PC:String(row[col.IMP_PC]||'').trim(),
       IMP_DC:String(row[col.IMP_DC]||'').trim(),PROCESS:proc,M5E:m5e});
   }
-  return{rows,nProc:procs.size||1,sheetName:sh};
+  // 分析数量：只计有FM+FC的有效行（剔除空行），上限不超过实际FM数
+  const validRows=rows.filter(r=>r.FM&&r.FC);
+  return{rows:validRows,nProc:procNamesSet.size||procs.size||1,sheetName:sh};
 }
 
 function parseLibrary(wb){
@@ -638,7 +645,7 @@ function renderReport({pfmea,stats,procAnalysis,lib,aiResult,fname}){
   // ── Stats bar（7列）──
   const items=[
     ['#e8eef8','#1a3a7a',stats.nProc,'个工序'],
-    ['#e8eef8','#2c5a9a',stats.n,'条分析数量'],
+    ['#e8eef8','#2c5a9a',stats.n,'条分析数量（5M1E）'],
     ['#c0392b','#fff',stats.apH+'项','AP-H 高风险'],
     ['#e67e22','#fff',stats.apM+'项','AP-M 中风险'],
     ['#27ae60','#fff',stats.apL+'项','AP-L 低风险'],
