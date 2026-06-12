@@ -440,7 +440,7 @@ async function callClaude(apiKey,prompt){
     },
     body:JSON.stringify({
       model:'claude-sonnet-4-6',
-      max_tokens:6000,
+      max_tokens:8000,
       messages:[{role:'user',content:prompt}]
     })
   });
@@ -450,62 +450,90 @@ async function callClaude(apiKey,prompt){
 }
 
 function buildPrompt(rows,stats,procAnalysis,fname){
-  const procSummary=procAnalysis.procList.slice(0,12).map(p=>`
-工序"${p.name}"：${p.rowCount}条5M1E分析，风险等级${p.maxAP}，覆盖维度[${p.dims.join('/')}]${p.missDims.length?'，缺失['+p.missDims.join('/')+']':''}，
-  S值范围：${p.sVals.slice(0,3).join(',')}，高D值条目：${p.highD}条${p.lawFMs.length?'，法维度FM：'+p.lawFMs.slice(0,3).join('；'):''}`).join('\n');
+  // 构建每工序完整数据（FM/FC/S/O/D/AP 全量）
+  const procMap=new Map();
+  rows.forEach(r=>{
+    const p=r.PROCESS||'未知工序';
+    if(!procMap.has(p))procMap.set(p,[]);
+    procMap.get(p).push(r);
+  });
 
-  return `你是一位资深的AIAG-VDA PFMEA评审专家，拥有机器人制造行业15年以上的工艺设计和质量管控经验。请对以下PFMEA文件进行专业评审。
+  const procDataLines=[];
+  procMap.forEach((prows,pname)=>{
+    const ap=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
+    const dims=new Set();
+    prows.forEach(r=>{getDimsFromM5E(r.M5E).forEach(d=>dims.add(d));getDims(r.FC,r.M5E).forEach(d=>dims.add(d))});
+    const missDims=['人','机','料','法','环','测'].filter(d=>!dims.has(d));
+    // 每工序FM/FC/S/O/D条目（最多8条，优先高S/高D）
+    const sorted=[...prows].sort((a,b)=>safeInt(b.S)-safeInt(a.S)||safeInt(b.D)-safeInt(a.D));
+    const sample=sorted.slice(0,8).map(r=>`  [${r.M5E||'?'}] FM:${r.FM.slice(0,30)} FC:${r.FC.slice(0,40)} S=${r.S} O=${r.O} D=${r.D} AP=${r.AP}${r.PC?' PC:'+r.PC.slice(0,30):''}${r.DC?' DC:'+r.DC.slice(0,25):''}`).join('\n');
+    procDataLines.push(`\n【工序】${pname} (AP-${ap}, 覆盖[${[...dims].join('')}]${missDims.length?', 缺失['+missDims.join('')+']':''}, 共${prows.length}条)\n${sample}`);
+  });
 
-## PFMEA基本信息
-- 文件名：${fname}
-- 工序数量：${stats.nProc}个
-- 分析条目：${stats.n}条（5M1E总计）
-- AP分布：H=${stats.apH}条 / M=${stats.apM}条 / L=${stats.apL}条
-- PFMEA识别率：${stats.recognitionRate}%（${stats.fullProcs}/${stats.nProc}个工序完整覆盖6个维度）
-- 平均严重度S：${stats.avgS}，平均探测度D：${stats.avgD}
-- PC模板化比例：${Math.round(stats.pcTemplateCount/stats.n*100)}%
-- 高D值(≥6)低效DC条目：${stats.dcBad}条
-- 步骤6缺失：${stats.step6Miss}/${stats.hmCount}条AP-H/M改进措施为空
+  const highRiskRows=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L')
+    .sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,15)
+    .map(r=>`  工序:${r.PROCESS} FM:${r.FM.slice(0,25)} S=${r.S} O=${r.O} D=${r.D} AP=${r.AP} DC:${(r.DC||'').slice(0,30)}`).join('\n');
 
-## 各工序分析摘要（前12个工序）
-${procSummary}
+  const templatePCExamples=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2)
+    .slice(0,3).map(r=>`  工序:${r.PROCESS} PC:${r.PC.slice(0,60)}`).join('\n');
 
-## 评审要求
-请基于以下知识库和专业判断，给出深度评审结论：
-1. AIAG-VDA PFMEA第5版评分标准
-2. 机器人制造行业常见失效模式（关节减速机、传感器安装、线束走线、螺钉连接、精密装配等）
-3. 5M1E六维度覆盖充分性判断准则
-4. 工艺设计准则（防错/防呆设计、MSA量测系统、首件确认、拍照留档等）
-5. 历史案例：线束走线、润滑脂涂覆、传感器角度偏差、ESD防护是机器人制造的高频失效来源
+  return `你是一位资深的AIAG-VDA PFMEA评审专家，拥有机器人制造行业15年以上工艺设计和质量管控经验，深度掌握减速机/轴承/线束/传感器/精密装配/润滑脂涂覆/ESD防护等专项工艺知识。
 
-## 输出格式
-请严格按以下JSON格式返回（所有字段均为中文，内容丰富专业）：
+## PFMEA文件信息
+文件：${fname}
+工序数：${stats.nProc}个 | 分析条目：${stats.n}条（5M1E总计）| AP分布：H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
+PFMEA识别率：${stats.recognitionRate}%（${stats.fullProcs}/${stats.nProc}个工序完整覆盖6维度）
+平均S：${stats.avgS} | 平均D：${stats.avgD} | PC模板化：${Math.round(stats.pcTemplateCount/stats.n*100)}% | 高D值低效DC：${stats.dcBad}条 | 步骤6缺失：${stats.step6Miss}条
+
+## 高风险条目（S≥7或AP-H/M，前15条）
+${highRiskRows||'无'}
+
+## 模板化PC示例
+${templatePCExamples||'无明显模板化'}
+
+## 各工序详细数据
+${procDataLines.join('\n')}
+
+## 评审任务
+请基于AIAG-VDA第5版、机器人制造行业历史案例（线束走线/润滑脂涂覆/传感器角度偏差/ESD防护/轴承安装/减速机密封/齿面磨损等高频失效）和工艺设计准则，生成专业深度评审报告。
+
+**核心要求（必须遵守）：**
+1. 所有分析必须引用真实工序名、实际FM文本、真实S/O/D数值——禁止泛泛而谈
+2. 缺点必须指明"工序XXX（S=Y/O=Z/D=W）的具体问题是..."
+3. 改进措施必须包含：受影响工序名 + 当前状态 + 具体改进手段 + 预期效果
+4. 知识库未覆盖项：基于行业知识判断该工序类型通常还应识别哪些失效模式（但当前PFMEA未包含）
+5. 每工序改进建议必须针对该工序的实际数据，不能套用通用模板
+
+## 输出格式（严格JSON，所有值为中文字符串）
 \`\`\`json
 {
-  "initGrade": "B-",
-  "initScore": 62,
-  "optGrade": "B+",
-  "optScore": 78,
-  "initSummary": "2-3句综合评价，客观指出核心质量状态",
-  "coreFindings": "核心问题描述，100-150字，具体指出最突出的2-3个系统性问题",
+  "initGrade": "X",
+  "initScore": 数字,
+  "optGrade": "X",
+  "optScore": 数字,
+  "initSummary": "2-3句，引用具体工序数/AP分布/识别率等实际数字",
+  "coreFindings": "100-150字核心问题，必须引用具体工序名和数值",
   "upgradeDirections": [
-    {"from": "现状描述（具体）", "to": "目标状态（具体可操作）"},
+    {"from": "当前具体问题（工序名+具体症状）", "to": "具体改进目标和方法"},
+    {"from": "...", "to": "..."},
     {"from": "...", "to": "..."},
     {"from": "...", "to": "..."}
   ],
   "priorityActions": [
-    {"label": "行动标签（4字以内）", "color": "#颜色", "text": "具体行动描述（含受影响工序、改进前后对比）"},
+    {"label": "≤4字标签", "color": "#色值", "text": "工序名+当前S/O/D+具体操作+预期效果（60-100字）"},
     {"label": "...", "color": "...", "text": "..."},
     {"label": "...", "color": "...", "text": "..."}
   ],
   "strengths": [
-    {"tag": "优点标签", "detail": "具体描述（引用数据）"},
+    {"tag": "优点标签", "detail": "引用数据的具体描述（30-60字）"},
+    {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."}
   ],
   "weaknesses": [
-    {"level": "高", "title": "问题标题", "detail": "具体描述（引用工序名、S/O/D数值、FM内容）"},
+    {"level": "高", "title": "具体问题标题", "detail": "必须含工序名+S/O/D值+FM文本（60-100字）"},
+    {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "中", "title": "...", "detail": "..."},
@@ -513,25 +541,38 @@ ${procSummary}
     {"level": "中", "title": "...", "detail": "..."}
   ],
   "improvements": {
-    "A": ["急迫改进条目1（含责任工序、具体操作、预期效果）", "条目2", "条目3", "条目4"],
-    "B": ["重点改进条目1", "条目2", "条目3", "条目4"],
-    "C": ["计划改进条目1", "条目2", "条目3"]
+    "A": [
+      "工序XXX：当前FC描述为'...'，与FM'...'严重脱节——立即重写为：[具体触发条件]，对应PC改为：[具体防止手段]，DC改为：[具体检测手段]，预期D值从X降至Y",
+      "...",
+      "...",
+      "..."
+    ],
+    "B": ["...", "...", "...", "..."],
+    "C": ["...", "...", "..."]
   },
-  "optSummary": "优化后的预期状态描述，2-3句",
-  "coreRequirements": "优化后的核心要求，列举3-4个关键量化指标",
-  "expectedChange": "预期改善效果描述，含具体数字目标",
-  "procSpecificAdvice": {
-    "工序名": "针对该工序的专项建议（2-3句）",
-    "工序名2": "..."
-  }
+  "optSummary": "优化后预期状态，2-3句，含具体数字目标",
+  "coreRequirements": "3-4条关键量化指标，每条含具体数字",
+  "expectedChange": "预期改善效果，含AP-H从X降至Y、D值从X降至Y等具体数字",
+  "procDetails": [
+    {
+      "name": "工序名（与输入完全一致）",
+      "lawFMs": ["该工序法维度识别到的具体失效模式1", "..."],
+      "libGaps": [
+        "行业通常还应识别：[具体FM点]（该工序类型常见但当前PFMEA未包含）",
+        "...",
+        "..."
+      ],
+      "suggestions": [
+        "针对该工序的具体改进：[当前问题] → [具体操作] + [预期效果]",
+        "...",
+        "..."
+      ]
+    }
+  ]
 }
 \`\`\`
 
-注意：
-- 所有分析必须结合提供的实际数据，避免泛泛而谈
-- 缺点必须指明具体工序名称和S/O/D数值
-- 改进措施必须可操作，有具体工具/方法
-- 评分要客观，不能虚高`;
+注意：procDetails 必须包含所有 ${procMap.size} 个工序的分析（按输入顺序）。libGaps 是基于你的行业知识判断，不依赖输入数据中是否存在。`;
 }
 
 // ══════════════════════════════════════════════════
@@ -643,33 +684,39 @@ function renderReport({pfmea,stats,procAnalysis,lib,aiResult,fname}){
     <div class="col-body">${imprBody}</div>
     <div class="col-body">${optBody}</div>`;
 
-  // ── 各工序卡片 ──
+  // ── 各工序卡片（优先用AI procDetails）──
   const rc={H:'#c0392b',M:'#e67e22',L:'#27ae60'};
   const rl={H:'AP-H 高风险',M:'AP-M 中风险',L:'AP-L 低风险'};
   const allDims=['人','机','料','法','环','测'];
+
+  const aiProcMap=new Map();
+  if(ai&&ai.procDetails){ai.procDetails.forEach(pd=>{if(pd&&pd.name)aiProcMap.set(pd.name,pd)})}
 
   document.getElementById('tocLinks').innerHTML=procAnalysis.procList.map((p,i)=>
     `<a href="#proc-${i}" class="proc-link" data-idx="${i}"><span class="toc-dot" style="background:${rc[p.maxAP]}"></span>${p.name}</a>`).join('');
 
   document.getElementById('procCards').innerHTML=procAnalysis.procList.map((p,i)=>{
     const dimPills=allDims.map(d=>`<span class="dim-pill ${p.dims.includes(d)?'dim-ok':'dim-miss'}">${d}</span>`).join('');
-    const lawSec=p.lawFMs.length?`<div class="proc-sub"><strong>⚙️ 法维度失效模式</strong><ul>${p.lawFMs.map(f=>`<li>${f}</li>`).join('')}</ul></div>`:'';
-    const gapSec=p.gaps.length?`<div class="proc-sub warn-sub"><strong>⚠️ 知识库未覆盖项（FM无对应PC/DC）</strong><ul>${p.gaps.map(g=>`<li>${g}</li>`).join('')}</ul></div>`:'';
-    // AI专项建议
-    let aiAdviceSec='';
-    if(ai&&ai.procSpecificAdvice&&ai.procSpecificAdvice[p.name]){
-      aiAdviceSec=`<div class="proc-sub ai-sub"><strong>🤖 AI专项建议</strong><p style="margin-top:4px;color:#5b2c8d">${ai.procSpecificAdvice[p.name]}</p></div>`;
-    }
-    const suggSec=p.suggs.length?`<div class="proc-sub sugg-sub"><strong>💡 改进建议</strong><ul>${p.suggs.map(s=>`<li>${s}</li>`).join('')}</ul></div>`
+    const aiPD=aiProcMap.get(p.name);
+    const aiBadge=aiPD?`<span style="background:#f0e8ff;border:1px solid #9b59b6;color:#7d3c98;padding:1px 6px;border-radius:8px;font-size:.68rem;margin-left:6px">AI</span>`:'';
+
+    const lawFMs=aiPD&&aiPD.lawFMs&&aiPD.lawFMs.length?aiPD.lawFMs:p.lawFMs;
+    const lawSec=lawFMs.length?`<div class="proc-sub"><strong>⚙️ 法维度失效模式</strong><ul>${lawFMs.map(f=>`<li>${f}</li>`).join('')}</ul></div>`:'';
+
+    const gaps=aiPD&&aiPD.libGaps&&aiPD.libGaps.length?aiPD.libGaps:(p.gaps.length?p.gaps.map(g=>`知识库未收录：${g}`):[]);
+    const gapSec=gaps.length?`<div class="proc-sub warn-sub"><strong>⚠️ 知识库未覆盖项</strong><ul>${gaps.map(g=>`<li>${g}</li>`).join('')}</ul></div>`:'';
+
+    const suggs=aiPD&&aiPD.suggestions&&aiPD.suggestions.length?aiPD.suggestions:p.suggs;
+    const suggSec=suggs.length?`<div class="proc-sub sugg-sub"><strong>💡 改进建议</strong><ul>${suggs.map(s=>`<li>${s}</li>`).join('')}</ul></div>`
       :`<div class="proc-sub" style="color:#aaa;padding:6px 14px;font-size:.79rem">✓ 暂无改进建议</div>`;
     return`<div class="proc-card" id="proc-${i}">
       <div class="proc-hdr">
-        <span class="proc-name">${p.name}</span>
+        <span class="proc-name">${p.name}${aiBadge}</span>
         <span class="cov-count">${p.dims.length}/6 维度 · ${p.rowCount}条分析</span>
         <span class="risk-badge" style="background:${rc[p.maxAP]}">${rl[p.maxAP]}</span>
       </div>
       <div class="dim-row">${dimPills}</div>
-      ${lawSec}${gapSec}${aiAdviceSec}${suggSec}
+      ${lawSec}${gapSec}${suggSec}
     </div>`;
   }).join('');
 
