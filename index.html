@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
   <div class="upload-card">
     <div style="font-size:34px">📊</div>
     <h1>PFMEA AI 评审工具</h1>
-    <p class="sub">基于 AIAG-VDA 标准 · 失效模式覆盖完整性分析 · 知识库缺口识别 · AI深度评审</p>
+    <p class="sub">基于 AIAG-VDA 标准 · 失效模式覆盖完整性分析 · 工艺设计准则经验库 · AI深度评审</p>
     <div class="drop-grid">
       <div class="dz" id="dz1" onclick="document.getElementById('fi1').click()">
         <div class="dz-icon">📋</div>
@@ -162,8 +162,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <span class="dz-x" id="dz2x" onclick="clearF(2,event)">✕</span>
       </div>
     </div>
+    <!-- 知识库上传（独立一行） -->
+    <div class="dz" id="dz3" style="margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:12px;padding:12px 16px" onclick="document.getElementById('fi3').click()">
+      <div style="font-size:22px;flex-shrink:0">🗄️</div>
+      <div style="flex:1">
+        <div class="dz-title">③ 工艺设计准则 经验库（可选）</div>
+        <div class="dz-hint" style="margin-top:2px">上传 <b>kb_data.json</b>（由 prepare_kb.ps1 生成）或直接上传 xlsx 大文件 · 上传后 AI 将与历史案例对比识别 FM 缺口</div>
+        <div class="dz-file" id="dz3f" style="margin-top:3px"></div>
+      </div>
+      <span class="dz-x" id="dz3x" onclick="clearF(3,event)" style="position:static">✕</span>
+    </div>
     <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none">
     <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none">
+    <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="display:none">
 
     <div class="api-box">
       <label>🤖 Claude AI 分析
@@ -206,6 +217,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
       <div class="rpt-btns">
         <button class="btn-sm btn-back" onclick="goBack()">← 重新评审</button>
         <button class="btn-sm btn-dl" onclick="dlReport()">⬇ 下载报告</button>
+        <button class="btn-sm" style="background:#27ae60;color:#fff" onclick="exportNewFMs()" id="btnExportFM">📤 导出新发现FM</button>
       </div>
     </div>
     <div class="stats-bar" id="statsBar"></div>
@@ -222,9 +234,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 // ══════════════════════════════════════
 // 文件管理
 // ══════════════════════════════════════
-const files={1:null,2:null};
-[1,2].forEach(n=>{
+const files={1:null,2:null,3:null};
+[1,2,3].forEach(n=>{
   const d=document.getElementById('dz'+n);
+  if(!d)return;
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
   d.addEventListener('dragleave',()=>d.classList.remove('over'));
   d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0])});
@@ -233,14 +246,14 @@ const files={1:null,2:null};
 function setF(n,f){
   files[n]=f;
   const fe=document.getElementById('dz'+n+'f');fe.textContent='✓ '+f.name;fe.style.display='block';
-  document.getElementById('dz'+n+'x').style.display='block';
+  const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='block';
   document.getElementById('dz'+n).classList.add('ready');
   updBtn();
 }
 function clearF(n,e){
   e.stopPropagation();files[n]=null;
-  document.getElementById('dz'+n+'f').style.display='none';
-  document.getElementById('dz'+n+'x').style.display='none';
+  const fe=document.getElementById('dz'+n+'f');if(fe)fe.style.display='none';
+  const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='none';
   document.getElementById('dz'+n).classList.remove('ready');
   document.getElementById('fi'+n).value='';updBtn();
 }
@@ -324,7 +337,60 @@ function parseLibrary(wb){
 }
 
 // ══════════════════════════════════════
-// 5M1E 维度检测
+// 知识库解析（支持 kb_data.json 和 xlsx）
+// ══════════════════════════════════════
+async function parseKnowledgeBase(f){
+  if(!f)return null;
+  const name=f.name.toLowerCase();
+  if(name.endsWith('.json')){
+    const text=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f,'utf-8')});
+    try{return JSON.parse(text)}catch(e){console.warn('KB JSON parse error',e);return null}
+  }
+  // xlsx 格式（备用）
+  const wb=await readFile(f);
+  const kb={pfmea_fms:[],history:[],pfmea_lib:[]};
+  if(wb.SheetNames.includes('PFMEA')){
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets['PFMEA'],{header:1,defval:''});
+    let step='';
+    for(let r=2;r<raw.length;r++){
+      if(raw[r][1])step=String(raw[r][1]).trim();
+      const fm=String(raw[r][2]||'').trim();
+      if(fm)kb.pfmea_fms.push({step,fm});
+    }
+  }
+  return kb;
+}
+
+// 从 KB 提取与当前 PFMEA 工序相关的历史案例摘要
+function buildKBContext(kb,procNames){
+  if(!kb)return'';
+  const lines=[];
+  // PFMEA sheet FMs（操作步骤→FM）
+  if(kb.pfmea_fms&&kb.pfmea_fms.length){
+    lines.push(`\n【经验库-PFMEA准则（${kb.pfmea_fms.length}条）】`);
+    const byStep={};
+    kb.pfmea_fms.forEach(e=>{if(!byStep[e.step||'通用'])byStep[e.step||'通用']=[];byStep[e.step||'通用'].push(e.fm)});
+    Object.entries(byStep).slice(0,15).forEach(([s,fms])=>lines.push(`  ${s}: ${fms.slice(0,4).join(' / ')}`));
+  }
+  // 历史问题：按分类匹配工序关键词
+  if(kb.history&&kb.history.length){
+    const keywords=procNames.flatMap(n=>n.replace(/[总分]装/g,'').split(/[\/\s]/)).filter(k=>k.length>=2);
+    const relevant=kb.history.filter(h=>{
+      const t=(h.cat1||'')+(h.cat2||'')+(h.desc||'')+(h.fm||'');
+      return keywords.some(k=>t.includes(k));
+    }).slice(0,20);
+    if(relevant.length){
+      lines.push(`\n【经验库-历史案例（相关${relevant.length}条）】`);
+      relevant.forEach(h=>lines.push(`  [${h.cat1||''}/${h.cat2||''}] ${h.fm||h.desc||''} → ${h.solution||''}`));
+    }
+  }
+  // 失效模式库
+  if(kb.pfmea_lib&&kb.pfmea_lib.length){
+    lines.push(`\n【失效模式库（${kb.pfmea_lib.length}条，含PC/DC）】`);
+    kb.pfmea_lib.slice(0,20).forEach(e=>lines.push(`  ${e.type}: FM=${e.fm.slice(0,25)}`));
+  }
+  return lines.join('\n');
+}
 // ══════════════════════════════════════
 const DIM_KW={人:['人员','作业','操作者','员工','培训','资质','主观','人-','人（'],机:['设备','工装','治具','工具','扳手','夹具','定扭','专用','机-','机（'],料:['物料','来料','材料','零件','原料','供应商','料-','辅料'],法:['SOP','工艺','方法','流程','操作','规范','标准','法-'],环:['环境','温度','湿度','清洁','防尘','静电','ESD','环-'],测:['检测','测量','量具','IPQC','检验','测试','CPK','测-']};
 const classAP=ap=>{const u=ap.toUpperCase();if(u.includes('H')||u.includes('高'))return'H';if(u.includes('M')||u.includes('中'))return'M';return'L'};
@@ -386,8 +452,9 @@ async function callClaude(apiKey,prompt){
 // ══════════════════════════════════════
 // 构建 Prompt（核心：FM覆盖完整性分析）
 // ══════════════════════════════════════
-function buildPrompt(rows,stats,fname){
+function buildPrompt(rows,stats,fname,kb){
   const procMap=stats.procMap;
+  const procNames=[...procMap.keys()];
   // 每工序详细数据
   const procLines=[];
   procMap.forEach((prows,pname)=>{
@@ -495,7 +562,9 @@ ${procLines.join('\n')}
   ]
 }
 \`\`\`
-注意：procDetails必须包含全部${procMap.size}个工序。libGaps是基于行业知识的FM完整性缺口，不是当前PFMEA的技术错误。每个工序至少2条libGaps。`;
+注意：procDetails必须包含全部${procMap.size}个工序。libGaps是基于行业知识的FM完整性缺口，不是当前PFMEA的技术错误。每个工序至少2条libGaps。
+${kb?'\n## 公司工艺设计准则经验库（已上传）\n结合以下经验库数据，识别更精准的行业缺口：\n'+buildKBContext(kb,procNames):''}`;
+}
 }
 
 // ══════════════════════════════════════
@@ -513,6 +582,8 @@ async function startReview(){
     if(!pfmea.rows.length)throw new Error('未读取到有效PFMEA数据，请检查文件格式');
     let lib=[];
     if(files[2]){setLoading(true,'正在读取失效模式库...',35);const wb2=await readFile(files[2]);lib=parseLibrary(wb2)}
+    let kb=null;
+    if(files[3]){setLoading(true,'正在加载工艺设计准则经验库...',42);kb=await parseKnowledgeBase(files[3]);if(kb)console.log('KB loaded: pfmea_fms='+kb.pfmea_fms.length+' history='+kb.history.length)}
     setLoading(true,'正在统计分析...',50);
     await new Promise(r=>setTimeout(r,30));
     const stats=calcStats(pfmea.rows);
@@ -520,7 +591,7 @@ async function startReview(){
     if(apiKey){
       setLoading(true,'正在调用 Claude AI 深度评审（约20-40秒）...',60);
       try{
-        const prompt=buildPrompt(pfmea.rows,stats,files[1].name);
+        const prompt=buildPrompt(pfmea.rows,stats,files[1].name,kb);
         const raw=await callClaude(apiKey,prompt);
         const m=raw.match(/```json\s*([\s\S]*?)\s*```/);
         aiResult=JSON.parse(m?m[1]:raw);
@@ -533,7 +604,7 @@ async function startReview(){
     }
     setLoading(true,'正在渲染报告...',95);
     await new Promise(r=>setTimeout(r,30));
-    lastEv={pfmea,stats,lib,aiResult,fname:files[1].name};
+    lastEv={pfmea,stats,lib,kb,aiResult,fname:files[1].name};
     renderReport(lastEv);
     setLoading(false);
     document.getElementById('uploadWrap').style.display='none';
@@ -737,6 +808,39 @@ ${stats.step6Miss>0?`<li>补全${stats.step6Miss}条AP-H/M步骤6改进措施，
     }})},{threshold:.25});
     document.querySelectorAll('.process-card').forEach(c=>obs.observe(c));
   },600);
+}
+
+// ══════════════════════════════════════
+// 自我更新：导出新发现的 FM 到 CSV
+// ══════════════════════════════════════
+function exportNewFMs(){
+  if(!lastEv){alert('请先完成评审');return}
+  const ai=lastEv.aiResult;
+  const rows=[['工序名称','新发现失效模式（知识库未覆盖）','来源','日期','操作步骤','备注']];
+  const today=new Date().toISOString().slice(0,10);
+
+  if(ai&&ai.procDetails){
+    ai.procDetails.forEach(pd=>{
+      (pd.libGaps||[]).forEach(gap=>{
+        // 清理前缀标记
+        const fm=gap.replace(/^【遗漏FM】/,'').replace(/^行业通常还应识别：/,'').trim();
+        if(fm)rows.push([pd.name,fm,'Claude AI分析',today,'','']);
+      });
+    });
+  }
+
+  if(rows.length<=1){
+    alert('当前评审无新发现FM（可能未启用AI分析或AI未返回知识库缺口）');return;
+  }
+
+  // 生成 CSV（UTF-8 BOM）
+  const bom='﻿';
+  const csv=bom+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`新发现FM_${lastEv.fname.replace(/\.xlsx?$/,'')}_${today}.csv`;
+  a.click();
+  alert(`✅ 已导出 ${rows.length-1} 条新发现FM\n\n导入方式：\n1. 运行桌面 prepare_kb.ps1 可将CSV合并回经验库\n2. 或直接添加到《PFMEA 失效模式输入》的工序类型分类sheet`);
 }
 
 function dlReport(){
