@@ -7,39 +7,41 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#f0f2f7;color:#222;font-size:13px}
-/* ── Upload ── */
-.upload-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:#f0f2f7}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+     background:#f0f2f7;color:#222;font-size:13px}
+
+/* ── 上传 ── */
+.upload-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
 .upload-card{background:#fff;border-radius:14px;box-shadow:0 4px 28px rgba(0,0,0,.10);padding:40px 36px;max-width:700px;width:100%;text-align:center}
 .upload-card h1{font-size:22px;color:#1a2e5a;margin:10px 0 4px}
 .upload-card .sub{color:#888;font-size:12px;margin-bottom:22px}
 .drop-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.drop-zone{border:2px dashed #b0c4de;border-radius:10px;padding:22px 14px;cursor:pointer;transition:.2s;background:#f8faff;position:relative}
-.drop-zone:hover,.drop-zone.over{border-color:#1a2e5a;background:#eaf0fb}
-.drop-zone.ready{border-color:#27ae60;background:#f0fff4;border-style:solid}
+.dz{border:2px dashed #b0c4de;border-radius:10px;padding:22px 14px;cursor:pointer;transition:.2s;background:#f8faff;position:relative}
+.dz:hover,.dz.over{border-color:#1a2e5a;background:#eaf0fb}
+.dz.ready{border-color:#27ae60;background:#f0fff4;border-style:solid}
 .dz-icon{font-size:26px;margin-bottom:7px}.dz-title{font-size:13px;font-weight:700;color:#1a2e5a;margin-bottom:3px}
-.dz-hint{font-size:11px;color:#aaa;line-height:1.5}.dz-file{font-size:11px;color:#27ae60;margin-top:5px;font-weight:600;word-break:break-all;display:none}
-.dz-clear{position:absolute;top:7px;right:9px;font-size:14px;color:#ccc;cursor:pointer;display:none}.dz-clear:hover{color:#e74c3c}
-.api-section{background:#f8f9ff;border:1px solid #d0d8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;text-align:left}
-.api-section label{font-size:12px;font-weight:700;color:#1a2e5a;display:block;margin-bottom:6px}
-.api-section .api-desc{font-size:11px;color:#888;margin-bottom:8px}
-.api-input-row{display:flex;gap:8px;align-items:center}
-.api-input{flex:1;padding:8px 12px;border:1px solid #c8d4e8;border-radius:6px;font-size:12px;font-family:monospace}
-.api-input:focus{outline:none;border-color:#1a2e5a}
-.api-status{font-size:11px;font-weight:600;white-space:nowrap}
-.api-tip{font-size:11px;color:#888;margin-top:6px}
-.api-tip a{color:#2980b9}
-.btn-start{display:block;width:100%;background:#1a2e5a;color:#fff;padding:12px;border-radius:8px;font-size:15px;cursor:pointer;border:none;font-weight:700;transition:.2s;letter-spacing:.5px}
+.dz-hint{font-size:11px;color:#aaa;line-height:1.5}.dz-file{font-size:11px;color:#27ae60;margin-top:5px;font-weight:600;display:none}
+.dz-x{position:absolute;top:7px;right:9px;font-size:14px;color:#ccc;cursor:pointer;display:none}.dz-x:hover{color:#e74c3c}
+.api-box{background:#f8f9ff;border:1px solid #d0d8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;text-align:left}
+.api-box label{font-size:12px;font-weight:700;color:#1a2e5a;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.api-box .desc{font-size:11px;color:#888;margin-bottom:8px}
+.ai-row{display:flex;gap:8px;align-items:center}
+.ai-inp{flex:1;padding:8px 12px;border:1px solid #c8d4e8;border-radius:6px;font-size:12px;font-family:monospace}
+.ai-inp:focus{outline:none;border-color:#1a2e5a}
+.ai-st{font-size:11px;font-weight:600;white-space:nowrap}
+.ai-tip{font-size:11px;color:#888;margin-top:6px}
+.ai-tip a{color:#2980b9}
+.btn-start{display:block;width:100%;background:#1a2e5a;color:#fff;padding:12px;border-radius:8px;font-size:15px;cursor:pointer;border:none;font-weight:700;transition:.2s}
 .btn-start:hover{background:#2c4a8a}.btn-start:disabled{background:#b0c4de;cursor:not-allowed}
-.hint-small{color:#aaa;font-size:11px;margin-top:8px}
-.loading-wrap{display:none;flex-direction:column;align-items:center;padding:28px}
+.hint-xs{color:#aaa;font-size:11px;margin-top:8px}
+.load-wrap{display:none;flex-direction:column;align-items:center;padding:28px}
 .spinner{width:44px;height:44px;border:4px solid #e0e0e0;border-top-color:#1a2e5a;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-txt{color:#666;font-size:13px}
-.load-progress{width:320px;background:#e8ecf4;border-radius:10px;height:6px;margin-top:10px;overflow:hidden}
+.load-prog{width:320px;background:#e8ecf4;border-radius:10px;height:6px;margin-top:10px;overflow:hidden}
 .load-bar{height:6px;background:#1a2e5a;border-radius:10px;width:0;transition:width .4s}
-/* ── Report ── */
-.report-wrap{display:flex;min-height:100vh;align-items:flex-start;display:none}
+
+/* ── 报告页 ── */
+.rpt-wrap{display:none;align-items:flex-start;min-height:100vh}
 .sidebar{position:sticky;top:0;height:100vh;width:192px;min-width:192px;overflow-y:auto;background:#1a2e5a;flex-shrink:0;padding:12px 0}
 .toc-title{color:#8aa0c8;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:0 14px 10px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.12)}
 .toc-top{color:#e8d090;padding:9px 14px;text-decoration:none;font-size:.77rem;border-left:3px solid #e8d090;display:block;font-weight:700}
@@ -50,10 +52,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 .proc-link.active{background:rgba(255,255,255,.14);color:#fff;border-left-color:#64a8f0}
 .toc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .main{flex:1;padding:16px;min-width:0}
-.rpt-header{background:linear-gradient(135deg,#1a2e5a 0%,#2c4a8a 100%);color:#fff;border-radius:10px 10px 0 0;padding:20px 26px 16px}
-.rpt-header h1{font-size:1.3rem;margin-bottom:3px;letter-spacing:.5px}
-.rpt-meta{font-size:.76rem;opacity:.7}
-.rpt-actions{margin-top:9px;display:flex;gap:8px}
+
+/* ── 报告 header + stats ── */
+.report-header{background:linear-gradient(135deg,#1a2e5a 0%,#2c4a8a 100%);color:#fff;border-radius:10px 10px 0 0;padding:20px 26px 16px}
+.report-header h1{font-size:1.3rem;margin-bottom:3px;letter-spacing:.5px}
+.report-meta{font-size:.76rem;opacity:.7}
+.rpt-btns{margin-top:9px;display:flex;gap:8px}
 .btn-sm{padding:6px 13px;border-radius:6px;font-size:.74rem;cursor:pointer;border:none;font-weight:600}
 .btn-back{background:rgba(255,255,255,.2);color:#fff}.btn-back:hover{background:rgba(255,255,255,.3)}
 .btn-dl{background:#f39c12;color:#fff}.btn-dl:hover{background:#d68910}
@@ -62,50 +66,76 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 .stat-item:last-child{border-right:none}
 .stat-val{font-size:1.4rem;font-weight:700;line-height:1.1}
 .stat-lbl{font-size:.68rem;margin-top:2px;opacity:.9}
+
+/* ── 5列主表 ── */
 .main-table{display:grid;grid-template-columns:1.2fr 1fr 1.1fr 1.1fr 1fr;border:1px solid #dde3f0;border-top:none;background:#fff}
 .col-hdr{padding:9px 12px;font-size:.77rem;font-weight:700;letter-spacing:.3px;text-align:center;border-bottom:2px solid rgba(0,0,0,.1)}
 .ch-init{background:#2c4a8a;color:#fff}.ch-str{background:#1a6b3a;color:#fff}
 .ch-weak{background:#a02020;color:#fff}.ch-impr{background:#c46a00;color:#fff}.ch-opt{background:#1a5a4a;color:#fff}
-.col-body{padding:13px 12px;border-right:1px solid #e8ecf4;min-height:360px;font-size:.8rem;line-height:1.55}
+.col-body{padding:13px 12px;border-right:1px solid #e8ecf4;min-height:420px;font-size:.8rem;line-height:1.55}
 .col-body:last-child{border-right:none}
 .col-body p{margin-bottom:7px}
+
+/* 等级圆圈 */
 .grade-circle{width:54px;height:54px;border-radius:50%;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;margin:0 auto 8px}
-.col-sub{font-size:.7rem;color:#888;text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.col-subhead{font-size:.7rem;color:#888;text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.init-summary{font-size:.8rem;line-height:1.55;color:#333;margin-bottom:8px}
 .core-finding{background:#f0f4fc;border-left:3px solid #4a7de8;padding:7px 10px;border-radius:0 4px 4px 0;font-size:.79rem;line-height:1.5;margin-bottom:8px}
-.upg-row{display:flex;align-items:flex-start;gap:6px;margin:5px 0;font-size:.77rem}
-.upg-from{color:#777;flex:1}.upg-arrow{color:#4a7de8;font-weight:700;padding-top:1px;flex-shrink:0}.upg-to{color:#1a5a2a;font-weight:600;flex:1}
+.upgrade-block{margin:8px 0}
+.upgrade-row{display:flex;align-items:flex-start;gap:6px;margin:6px 0;font-size:.76rem}
+.upg-from{color:#777;flex:1;line-height:1.4}.upg-arrow{color:#4a7de8;font-weight:700;padding-top:1px;flex-shrink:0;font-size:.9rem}.upg-to{color:#1a5a2a;font-weight:600;flex:1;line-height:1.4}
+.actions-block{margin:8px 0}
 .action-row{display:flex;align-items:flex-start;gap:6px;margin:5px 0}
-.action-lbl{color:#fff;font-size:.69rem;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.action-lbl{color:#fff;font-size:.69rem;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;margin-top:1px;font-weight:600}
 .action-text{font-size:.79rem;line-height:1.45;color:#333}
-.expected{background:#f8f4e8;border:1px solid #e8d898;border-radius:4px;padding:7px 10px;font-size:.79rem;color:#5a4a00;margin-top:8px}
-.str-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px}
+.expected-change{background:#f8f4e8;border:1px solid #e8d898;border-radius:4px;padding:7px 10px;font-size:.79rem;color:#5a4a00;margin-top:8px}
+
+/* 优点 */
+.strength-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px}
 .str-tag{background:#d4edda;color:#1a6b3a;padding:2px 8px;border-radius:10px;font-size:.73rem;font-weight:700;white-space:nowrap;flex-shrink:0}
 .str-detail{font-size:.79rem;color:#444;line-height:1.45}
-.weak-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px}
+
+/* 缺点 */
+.weakness-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px}
 .sev-badge{color:#fff;padding:2px 7px;border-radius:10px;font-size:.71rem;font-weight:700;flex-shrink:0;margin-top:1px}
 .weak-content{font-size:.79rem;color:#444;line-height:1.45}
+
+/* 改进 */
 .impr-group{margin-bottom:10px}
-.impr-hdr{font-size:.74rem;font-weight:700;padding:4px 10px;border-radius:4px 4px 0 0}
+.impr-group-header{font-size:.74rem;font-weight:700;padding:4px 10px;border-radius:4px 4px 0 0}
 .impr-list{padding:8px 10px 8px 20px;border:1px solid #e8ecf4;border-top:none;border-radius:0 0 4px 4px}
 .impr-list li{font-size:.79rem;line-height:1.5;margin-bottom:4px;color:#333}
-.ai-badge{display:inline-flex;align-items:center;gap:4px;background:#f0e8ff;border:1px solid #9b59b6;color:#7d3c98;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;margin-bottom:8px}
-.proc-section{background:#fff;border:1px solid #dde3f0;border-top:none;padding:20px 22px;border-radius:0 0 10px 10px}
-.proc-section h2{font-size:1rem;color:#1a2e5a;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #e8ecf4}
-.proc-card{border:1px solid #e0e4ec;border-radius:8px;margin-bottom:12px;overflow:hidden}
-.proc-hdr{display:flex;align-items:center;gap:10px;background:#f4f6fb;padding:10px 14px;flex-wrap:wrap}
-.proc-name{font-weight:700;font-size:.92rem;flex:1}
-.cov-count{font-size:.73rem;color:#888}
+
+/* 工序详细 */
+.process-section{background:#fff;border:1px solid #dde3f0;border-top:none;padding:20px 22px;border-radius:0 0 10px 10px}
+.process-section h2{font-size:1rem;color:#1a2e5a;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #e8ecf4}
+.process-card{border:1px solid #e0e4ec;border-radius:8px;margin-bottom:12px;overflow:hidden}
+.process-header{display:flex;align-items:center;gap:10px;background:#f4f6fb;padding:10px 14px;flex-wrap:wrap}
+.process-name{font-weight:700;font-size:.92rem;flex:1}
+.cov-counter{font-size:.73rem;color:#888}
 .risk-badge{color:#fff;padding:3px 10px;border-radius:10px;font-size:.73rem;font-weight:700}
-.dim-row{padding:8px 14px 5px;display:flex;flex-wrap:wrap;gap:4px}
-.dim-pill{padding:2px 9px;border-radius:10px;font-size:.78rem;border:1px solid;font-weight:600}
-.dim-ok{background:#eafaf1;color:#1a7a3a;border-color:#1a7a3a}
-.dim-miss{background:#fdf0f0;color:#c0392b;border-color:#c0392b}
+.coverage-row{padding:8px 14px 5px;display:flex;flex-wrap:wrap;gap:4px}
+.dim-ok{background:#eafaf1;color:#1a7a3a;border:1px solid #1a7a3a;padding:2px 9px;border-radius:10px;font-size:.79rem;font-weight:600}
+.dim-miss{background:#fdf0f0;color:#c0392b;border:1px solid #c0392b;padding:2px 9px;border-radius:10px;font-size:.79rem;font-weight:600}
 .proc-sub{padding:8px 14px;border-top:1px solid #f0f2f6;font-size:.8rem}
-.proc-sub ul{padding-left:15px;margin-top:4px}
+.proc-sub ul{padding-left:16px;margin-top:5px}
 .proc-sub li{margin-bottom:4px;line-height:1.45}
-.warn-sub{background:#fffbf0}.sugg-sub{background:#f0fbf4}
-.ai-sub{background:#f8f0ff;border-top-color:#d8b4fe}
+.warn-sub{background:#fffbf0}
+.sugg-sub{background:#f0fbf4}
+.fm-cover-bar{display:flex;align-items:center;gap:8px;margin-top:4px}
+.fm-cover-pct{font-size:.72rem;font-weight:700}
+.fm-bar-bg{flex:1;background:#e0e4ec;border-radius:4px;height:6px}
+.fm-bar-fill{height:6px;border-radius:4px;transition:width .4s}
+
 .rpt-footer{text-align:center;color:#aaa;font-size:.73rem;padding:16px;background:#fff;border-top:1px solid #eee}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;background:#f0e8ff;border:1px solid #9b59b6;color:#7d3c98;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;margin-bottom:8px}
+
+@media(max-width:860px){
+  .rpt-wrap{flex-direction:column}
+  .sidebar{position:static;height:auto;width:100%}
+  .main-table{grid-template-columns:1fr}
+  .drop-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -114,58 +144,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 <div class="upload-wrap" id="uploadWrap">
   <div class="upload-card">
     <div style="font-size:34px">📊</div>
-    <h1>PFMEA AI 联动评审工具</h1>
-    <p class="sub">双文件联动 · AI深度分析 · 各工序5M1E详细评审 · 知识库历史案例对标</p>
+    <h1>PFMEA AI 评审工具</h1>
+    <p class="sub">基于 AIAG-VDA 标准 · 失效模式覆盖完整性分析 · 知识库缺口识别 · AI深度评审</p>
     <div class="drop-grid">
-      <div class="drop-zone" id="dz1" onclick="document.getElementById('fi1').click()">
+      <div class="dz" id="dz1" onclick="document.getElementById('fi1').click()">
         <div class="dz-icon">📋</div>
         <div class="dz-title">① PFMEA 文件</div>
-        <div class="dz-hint">FM / FC / S / O / D / AP<br>如：X1200窄版PFMEA合.xlsx</div>
+        <div class="dz-hint">FM/FC/S/O/D/AP<br>如：X1200窄版PFMEA合.xlsx</div>
         <div class="dz-file" id="dz1f"></div>
-        <span class="dz-clear" id="dz1c" onclick="clearFile(1,event)">✕</span>
+        <span class="dz-x" id="dz1x" onclick="clearF(1,event)">✕</span>
       </div>
-      <div class="drop-zone" id="dz2" onclick="document.getElementById('fi2').click()">
+      <div class="dz" id="dz2" onclick="document.getElementById('fi2').click()">
         <div class="dz-icon">📚</div>
-        <div class="dz-title">② 失效模式输入（可选）</div>
-        <div class="dz-hint">PC / DC 知识库<br>工序类型分类 sheet</div>
+        <div class="dz-title">② 失效模式库（可选）</div>
+        <div class="dz-hint">PC/DC 知识库<br>工序类型分类 sheet</div>
         <div class="dz-file" id="dz2f"></div>
-        <span class="dz-clear" id="dz2c" onclick="clearFile(2,event)">✕</span>
+        <span class="dz-x" id="dz2x" onclick="clearF(2,event)">✕</span>
       </div>
     </div>
     <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none">
     <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none">
 
-    <div class="api-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <label style="margin:0">🤖 Claude AI 深度分析</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:normal">
-          <input type="checkbox" id="aiEnabled" checked onchange="toggleAI()" style="width:16px;height:16px">
-          启用 AI 分析
+    <div class="api-box">
+      <label>🤖 Claude AI 分析
+        <label style="font-weight:normal;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="aiOn" checked onchange="toggleAI()" style="margin-right:4px">启用 AI 分析
         </label>
-      </div>
-      <div class="api-desc">使用 Claude AI 结合行业知识库（历史案例+工艺设计准则）进行深度评审，不启用则使用内置规则引擎</div>
-      <div id="aiKeyBlock">
-        <div class="api-input-row">
-          <input class="api-input" id="apiKey" type="password" value="sk-eictAZQygGpL1qX4J8ntEzmB5FGbC6L2Vbtp4MiRMMkcDyRd" oninput="checkApiKey()">
-          <span class="api-status" id="apiStatus" style="color:#27ae60">✓ 已配置</span>
+      </label>
+      <div class="desc">AI 将逐工序分析失效模式覆盖完整性，识别行业通用但当前未覆盖的失效模式</div>
+      <div id="aiBlock">
+        <div class="ai-row">
+          <input class="ai-inp" id="apiKey" type="password" value="sk-eictAZQygGpL1qX4J8ntEzmB5FGbC6L2Vbtp4MiRMMkcDyRd">
+          <span class="ai-st" style="color:#27ae60">✓ 已配置</span>
         </div>
-        <input class="api-input" id="apiBase" type="text" value="https://aigw.gino.plus" placeholder="API Base URL（默认官方）" style="margin-top:6px;font-size:11px;color:#666">
-        <div class="api-tip">API Key 来自本机配置（已自动填入）· 不启用则使用内置规则引擎</div>
+        <input class="ai-inp" id="apiBase" type="text" value="https://aigw.gino.plus" style="margin-top:6px;font-size:11px;color:#666">
       </div>
     </div>
-
     <button class="btn-start" id="btnStart" disabled onclick="startReview()">请先上传 PFMEA 文件</button>
-    <p class="hint-small">⚡ 文件在本地处理，不上传服务器；API Key 仅用于调用 Claude，不存储</p>
+    <p class="hint-xs">⚡ 文件本地处理，不上传服务器</p>
   </div>
-  <div class="loading-wrap" id="loadWrap">
+  <div class="load-wrap" id="loadWrap">
     <div class="spinner"></div>
-    <p class="load-txt" id="loadTxt">正在读取...</p>
-    <div class="load-progress"><div class="load-bar" id="loadBar"></div></div>
+    <p id="loadTxt" style="color:#666;font-size:13px">正在读取...</p>
+    <div class="load-prog"><div class="load-bar" id="loadBar"></div></div>
   </div>
 </div>
 
 <!-- ══ 报告页 ══ -->
-<div class="report-wrap" id="reportWrap">
+<div class="rpt-wrap" id="rptWrap">
   <nav class="sidebar" id="sidebar">
     <div class="toc-title">报告导航</div>
     <a href="#rpt-top" class="toc-top">◆ 总体评审结论</a>
@@ -174,65 +200,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
   </nav>
   <div class="main">
     <div id="rpt-top"></div>
-    <div class="rpt-header">
+    <div class="report-header">
       <h1 id="rptTitle">PFMEA AI 评审报告</h1>
-      <div class="rpt-meta" id="rptMeta"></div>
-      <div class="rpt-actions">
+      <div class="report-meta" id="rptMeta"></div>
+      <div class="rpt-btns">
         <button class="btn-sm btn-back" onclick="goBack()">← 重新评审</button>
         <button class="btn-sm btn-dl" onclick="dlReport()">⬇ 下载报告</button>
       </div>
     </div>
     <div class="stats-bar" id="statsBar"></div>
     <div class="main-table" id="mainTable"></div>
-    <div class="proc-section">
+    <div class="process-section">
       <h2>各工序详细评审</h2>
       <div id="procCards"></div>
     </div>
-    <div class="rpt-footer">PFMEA AI 评审工具 · AIAG-VDA 标准 · 5M1E 框架 · AI深度分析 · 数据本地处理</div>
+    <div class="rpt-footer">PFMEA AI 评审工具 · AIAG-VDA 标准 · 失效模式覆盖完整性分析 · 数据本地处理安全</div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 // 文件管理
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 const files={1:null,2:null};
 [1,2].forEach(n=>{
-  const dz=document.getElementById('dz'+n);
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])setFile(n,e.dataTransfer.files[0])});
-  document.getElementById('fi'+n).addEventListener('change',e=>{if(e.target.files[0])setFile(n,e.target.files[0])});
+  const d=document.getElementById('dz'+n);
+  d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
+  d.addEventListener('dragleave',()=>d.classList.remove('over'));
+  d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0])});
+  document.getElementById('fi'+n).addEventListener('change',e=>{if(e.target.files[0])setF(n,e.target.files[0])});
 });
-function setFile(n,f){
+function setF(n,f){
   files[n]=f;
   const fe=document.getElementById('dz'+n+'f');fe.textContent='✓ '+f.name;fe.style.display='block';
-  document.getElementById('dz'+n+'c').style.display='block';
+  document.getElementById('dz'+n+'x').style.display='block';
   document.getElementById('dz'+n).classList.add('ready');
   updBtn();
 }
-function clearFile(n,e){
+function clearF(n,e){
   e.stopPropagation();files[n]=null;
   document.getElementById('dz'+n+'f').style.display='none';
-  document.getElementById('dz'+n+'c').style.display='none';
+  document.getElementById('dz'+n+'x').style.display='none';
   document.getElementById('dz'+n).classList.remove('ready');
   document.getElementById('fi'+n).value='';updBtn();
 }
 function updBtn(){
   const b=document.getElementById('btnStart');
-  if(files[1]){b.disabled=false;b.textContent='🚀 开始AI联动评审'}
+  if(files[1]){b.disabled=false;b.textContent='🚀 开始 AI 评审'}
   else{b.disabled=true;b.textContent='请先上传 PFMEA 文件'}
 }
 function toggleAI(){
-  const on=document.getElementById('aiEnabled').checked;
-  document.getElementById('aiKeyBlock').style.display=on?'':'none';
-}
-function checkApiKey(){
-  const k=document.getElementById('apiKey').value.trim();
-  const s=document.getElementById('apiStatus');
-  if(!k){s.textContent='';return}
-  if(k.startsWith('sk-')){s.textContent='✓ 格式正确';s.style.color='#27ae60'}
-  else{s.textContent='⚠ 格式有误';s.style.color='#e74c3c'}
+  document.getElementById('aiBlock').style.display=document.getElementById('aiOn').checked?'':'none';
 }
 function setLoading(on,txt,pct){
   document.getElementById('uploadWrap').querySelector('.upload-card').style.display=on?'none':'';
@@ -241,27 +259,26 @@ function setLoading(on,txt,pct){
   if(pct!==undefined)document.getElementById('loadBar').style.width=pct+'%';
 }
 function goBack(){
-  document.getElementById('reportWrap').style.display='none';
+  document.getElementById('rptWrap').style.display='none';
   document.getElementById('uploadWrap').style.display='flex';
   document.getElementById('uploadWrap').querySelector('.upload-card').style.display='';
   document.getElementById('loadWrap').style.display='none';
 }
 
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 // Excel 解析
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{res(XLSX.read(e.target.result,{type:'array'}))}catch(err){rej(err)}};r.readAsArrayBuffer(f)})}
 
 function parsePfmea(wb){
   let sh=wb.SheetNames.find(n=>/pfmea/i.test(n)&&!/评分|ap/i.test(n.toLowerCase()))||wb.SheetNames[0];
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:''});
-  // 找标题行：必须同时含'失效模式'/'FM' 和 '严重度'/'频度'（防止标题页误判）
+  // 标题行：同时含'失效模式'和'严重度'（防止标题页误判）
   let hdr=10;
   for(let r=0;r<Math.min(25,raw.length);r++){
     const row=raw[r]||[];
-    const hasFM=row.some(v=>String(v).includes('失效模式')||String(v).includes('Failure Mode'));
-    const hasSev=row.some(v=>String(v).includes('严重度')||String(v).includes('Severity')||String(v).includes('频度')||String(v).includes('探测度'));
-    if(hasFM&&hasSev){hdr=r;break}
+    if(row.some(v=>String(v).includes('失效模式')||String(v).includes('Failure Mode'))&&
+       row.some(v=>String(v).includes('严重度')||String(v).includes('频度')||String(v).includes('探测度'))){hdr=r;break}
   }
   const hr=raw[hdr]||[];
   const PATS={FM:['失效模式','FM'],FC:['失效原因','FC','工作要素的失效原因'],
@@ -269,7 +286,6 @@ function parsePfmea(wb){
     S:['严重度','FE严重度'],O:['频度','FC频度'],D:['探测度'],AP:['PFMEA AP','优先','AP'],
     IMP_PC:['预防措施','改进预防'],IMP_DC:['探测措施','改进探测'],
     PROCESS:['过程步骤','功能和产品','过程项'],M5E:['5M1E','工作要素']};
-  // AP优先用更新后AP列（col30 for P40格式）
   const DEF={FM:10,FC:11,PC:12,DC:14,S:9,O:13,D:17,AP:18,IMP_PC:20,IMP_DC:21,PROCESS:1,M5E:4};
   const col={};
   for(const[k,pts]of Object.entries(PATS)){col[k]=DEF[k];for(let c=0;c<hr.length;c++){if(pts.some(p=>String(hr[c]||'').includes(p))){col[k]=c;break}}}
@@ -291,10 +307,8 @@ function parsePfmea(wb){
       AP:String(row[col.AP]||'').trim(),IMP_PC:String(row[col.IMP_PC]||'').trim(),
       IMP_DC:String(row[col.IMP_DC]||'').trim(),PROCESS:proc,M5E:m5e});
   }
-  // 分析数量：只计有FM+FC的有效行（剔除空行）
-  const validRows=rows.filter(r=>r.FM&&r.FC);
-  const nProcFinal=new Set(validRows.map(r=>r.PROCESS).filter(Boolean)).size||procs.size||1;
-  return{rows:validRows,nProc:nProcFinal,sheetName:sh};
+  const nProcFinal=new Set(rows.map(r=>r.PROCESS).filter(Boolean)).size||procs.size||1;
+  return{rows,nProc:nProcFinal,sheetName:sh};
 }
 
 function parseLibrary(wb){
@@ -303,274 +317,177 @@ function parseLibrary(wb){
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:''});
   const lib=[];
   for(let r=1;r<raw.length;r++){
-    const row=raw[r];const fm=String(row[4]||'').trim();
-    if(fm)lib.push({FM:fm,FC:String(row[5]||'').trim(),PC:String(row[6]||'').trim(),DC:String(row[7]||'').trim(),type:String(row[3]||'').trim()});
+    const fm=String(raw[r][4]||'').trim();
+    if(fm)lib.push({FM:fm,FC:String(raw[r][5]||'').trim(),PC:String(raw[r][6]||'').trim(),DC:String(raw[r][7]||'').trim(),type:String(raw[r][3]||'').trim()});
   }
   return lib;
 }
 
-// ══════════════════════════════════════════════════
-// 5M1E 分析工具
-// ══════════════════════════════════════════════════
-const M5E_DIMS={
-  人:{kws:['人员','作业','操作者','员工','培训','资质','技能','主观','人-','人（'],label:'人'},
-  机:{kws:['设备','工装','治具','工具','扳手','夹具','定扭','专用','机-','机（'],label:'机'},
-  料:{kws:['物料','来料','材料','零件','原料','供应商','料-','料（'],label:'料'},
-  法:{kws:['SOP','工艺','方法','流程','操作','规范','标准','法-','法（'],label:'法'},
-  环:{kws:['环境','温度','湿度','清洁','防尘','静电','ESD','环-','环（'],label:'环'},
-  测:{kws:['检测','测量','量具','IPQC','检验','测试','CPK','抽检','测-','测（'],label:'测'}
-};
-function getDims(fc,m5e){
-  const t=(fc+' '+m5e).toLowerCase();
-  return Object.entries(M5E_DIMS).filter(([,{kws}])=>kws.some(k=>t.includes(k.toLowerCase()))).map(([d])=>d);
-}
-function getDimsFromM5E(m5e){
-  // 直接从M5E列判断维度
-  const v=(m5e||'').toLowerCase();
-  const dims=[];
-  if(v.includes('人')||v.includes('作业员'))dims.push('人');
-  if(v.includes('机')||v.includes('设备')||v.includes('工装'))dims.push('机');
-  if(v.includes('料')||v.includes('物料')||v.includes('辅料'))dims.push('料');
-  if(v.includes('法')||v.includes('sop')||v.includes('工艺'))dims.push('法');
-  if(v.includes('环')||v.includes('环境'))dims.push('环');
-  if(v.includes('测')||v.includes('检'))dims.push('测');
-  return dims;
-}
-
+// ══════════════════════════════════════
+// 5M1E 维度检测
+// ══════════════════════════════════════
+const DIM_KW={人:['人员','作业','操作者','员工','培训','资质','主观','人-','人（'],机:['设备','工装','治具','工具','扳手','夹具','定扭','专用','机-','机（'],料:['物料','来料','材料','零件','原料','供应商','料-','辅料'],法:['SOP','工艺','方法','流程','操作','规范','标准','法-'],环:['环境','温度','湿度','清洁','防尘','静电','ESD','环-'],测:['检测','测量','量具','IPQC','检验','测试','CPK','测-']};
 const classAP=ap=>{const u=ap.toUpperCase();if(u.includes('H')||u.includes('高'))return'H';if(u.includes('M')||u.includes('中'))return'M';return'L'};
 const safeInt=v=>{const n=parseFloat(v);return isNaN(n)?0:Math.round(n)};
 const getGrade=s=>s>=90?'A+':s>=80?'A':s>=70?'B+':s>=60?'B':s>=50?'B-':s>=40?'C+':'C';
 const gradeColor=g=>({'A+':'#27ae60','A':'#2ecc71','B+':'#2980b9','B':'#3498db','B-':'#e67e22','C+':'#e74c3c','C':'#c0392b'}[g]||'#888');
 function variance(a){if(a.length<2)return 0;const m=a.reduce((s,v)=>s+v,0)/a.length;return a.reduce((s,v)=>s+(v-m)**2,0)/a.length}
-function fmSim(a,b){const ca=a.replace(/[，。！？、\s]/g,''),cb=b.replace(/[，。！？、\s]/g,'');let h=0;for(let i=0;i<ca.length-1;i++){if(cb.includes(ca.slice(i,i+2)))h++}return h>=1}
+function getDimsFromM5E(m){const v=(m||'').toLowerCase();const d=[];if(v.includes('人')||v.includes('作业员'))d.push('人');if(v.includes('机')||v.includes('设备')||v.includes('工装'))d.push('机');if(v.includes('料')||v.includes('物料')||v.includes('辅料'))d.push('料');if(v.includes('法')||v.includes('sop')||v.includes('工艺'))d.push('法');if(v.includes('环')||v.includes('环境'))d.push('环');if(v.includes('测')||v.includes('检'))d.push('测');return d}
 
-// ══════════════════════════════════════════════════
-// 内置规则评审引擎
-// ══════════════════════════════════════════════════
-const GENERIC_FC=['操作失误','螺钉扭矩','扭矩选取','人员未经培训即上岗','作业员注意力','换料时未核对'];
+// ══════════════════════════════════════
+// 统计引擎
+// ══════════════════════════════════════
 const TEMPLATES=['SOP评审','复盘','DOE','CPK数据报告','跨部门评审','Checklist','联动确认','矩阵清单'];
+const GENERIC_FC=['操作失误','螺钉扭矩','扭矩选取','人员未经培训即上岗','作业员注意力','换料时未核对'];
 
-function buildProcAnalysis(rows,lib){
-  const procMap=new Map();
-  rows.forEach(r=>{
-    const p=r.PROCESS||'未知工序';
-    if(!procMap.has(p))procMap.set(p,[]);
-    procMap.get(p).push(r);
-  });
-
-  const allDims=['人','机','料','法','环','测'];
-  const procList=[];
-  let fullCoverage=0;
-
-  procMap.forEach((prows,pname)=>{
-    // 从M5E列判断（更准确）
-    const coveredDims=new Set();
-    prows.forEach(r=>{
-      getDimsFromM5E(r.M5E).forEach(d=>coveredDims.add(d));
-      getDims(r.FC,r.M5E).forEach(d=>coveredDims.add(d));
-    });
-    const dims=[...coveredDims];
-    const missDims=allDims.filter(d=>!dims.includes(d));
-    if(missDims.length===0)fullCoverage++;
-
-    const maxAP=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
-    const highS=prows.filter(r=>safeInt(r.S)>=7);
-    const highD=prows.filter(r=>safeInt(r.D)>=6&&classAP(r.AP)!=='L');
-
-    // 法维度FMs
-    const lawFMs=[...new Set(prows.filter(r=>{
-      const m=r.M5E||'';return m.includes('法')||m.includes('SOP');
-    }).map(r=>r.FM))].slice(0,7);
-
-    // 知识库缺口
-    const gaps=lib.length?prows.filter(r=>!lib.find(l=>fmSim(r.FM,l.FM))).map(r=>r.FM).filter((v,i,a)=>a.indexOf(v)===i).slice(0,4):[];
-
-    // 改进建议（规则引擎）
-    const suggs=[];
-    if(highD.length)suggs.push(`${highD.length}条D≥6的高风险条目：DC升级为量化检测手段（电气通断测试/扭矩数据采集/首件确认），目标D≤4`);
-    if(missDims.length)suggs.push(`缺失${missDims.join('/')}维度分析：补充${missDims.map(d=>({人:'人员培训/资质',机:'设备工装防错',料:'来料检验',法:'SOP工艺要求',环:'环境管控',测:'检验量具'}[d])).join('、')}相关失效原因`);
-    if(highS.length&&prows.every(r=>!r.PC||r.PC.length<20))suggs.push(`${highS.length}条S≥7的高严重度条目：预防控制措施过于简略，需针对每个FC补充具体预防手段`);
-    const pcTemplate=prows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2).length;
-    if(pcTemplate>0)suggs.push(`${pcTemplate}条PC高度模板化（SOP评审+DOE+CPK），失去针对性，需结合工序实际重写`);
-
-    procList.push({name:pname,maxAP,dims,missDims,lawFMs,gaps,suggs,
-      rowCount:prows.length,highS:highS.length,highD:highD.length,
-      sVals:prows.map(r=>safeInt(r.S)).filter(v=>v>0),
-      oVals:prows.map(r=>safeInt(r.O)).filter(v=>v>0)});
-  });
-
-  return{procList,fullCoverage,total:procMap.size};
-}
-
-function builtinEvaluate(rows,lib,fname1){
-  const n=rows.length,nProc=new Set(rows.map(r=>r.PROCESS)).size;
+function calcStats(rows){
+  const n=rows.length;
   let apH=0,apM=0,apL=0;
   rows.forEach(r=>{const c=classAP(r.AP);if(c==='H')apH++;else if(c==='M')apM++;else apL++});
-  const r1Bad=rows.filter(r=>GENERIC_FC.filter(g=>r.FC.includes(g)).length>=2).length;
-  const allDims=['人','机','料','法','环','测'];
+  const nProc=new Set(rows.map(r=>r.PROCESS).filter(Boolean)).size||1;
   const procMap=new Map();
   rows.forEach(r=>{const p=r.PROCESS||'?';if(!procMap.has(p))procMap.set(p,[]);procMap.get(p).push(r)});
   let fullProcs=0;
+  const allDims=['人','机','料','法','环','测'];
   procMap.forEach(prows=>{
     const dims=new Set();
-    prows.forEach(r=>{getDimsFromM5E(r.M5E).forEach(d=>dims.add(d));getDims(r.FC,r.M5E).forEach(d=>dims.add(d))});
+    prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
     if(allDims.every(d=>dims.has(d)))fullProcs++;
   });
-  const recognitionRate=Math.round(fullProcs/nProc*100);
   const sVals=rows.map(r=>safeInt(r.S)).filter(v=>v>0);
-  const oVals=rows.map(r=>safeInt(r.O)).filter(v=>v>0);
   const dVals=rows.map(r=>safeInt(r.D)).filter(v=>v>0);
-  const pcTemplateCount=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2).length;
-  const dcBad=rows.filter(r=>safeInt(r.D)>=6&&(r.DC.includes('目视')||r.DC.length<15)).length;
+  const pcTpl=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2).length;
+  const dcBad=rows.filter(r=>safeInt(r.D)>=6&&r.DC&&(r.DC.includes('目视')||r.DC.length<15)).length;
   const hmRows=rows.filter(r=>['H','M'].includes(classAP(r.AP)));
   const step6Miss=hmRows.filter(r=>!r.IMP_PC&&!r.IMP_DC).length;
-  const sVar=Math.round(variance(sVals)*100)/100,oVar=Math.round(variance(oVals)*100)/100,dVar=Math.round(variance(dVals)*100)/100;
+  const sVar=Math.round(variance(sVals)*100)/100;
+  const dVar=Math.round(variance(dVals)*100)/100;
   const avgS=sVals.length?Math.round(sVals.reduce((a,b)=>a+b,0)/sVals.length*10)/10:0;
   const avgD=dVals.length?Math.round(dVals.reduce((a,b)=>a+b,0)/dVals.length*10)/10:0;
-  return{n,nProc,apH,apM,apL,recognitionRate,fullProcs,r1Bad,pcTemplateCount,dcBad,step6Miss,hmCount:hmRows.length,
-    sVar,oVar,dVar,avgS,avgD,sVals,dVals,
-    grade:getGrade(Math.max(30,Math.min(85,50+(recognitionRate-50)*0.5-(pcTemplateCount/n)*30-(dcBad/n)*20)))};
+  const r1Bad=rows.filter(r=>GENERIC_FC.filter(g=>r.FC.includes(g)).length>=2).length;
+  const recRate=Math.round(fullProcs/nProc*100);
+  return{n,nProc,apH,apM,apL,fullProcs,recRate,pcTpl,dcBad,step6Miss,hmCount:hmRows.length,sVar,dVar,avgS,avgD,sVals,dVals,r1Bad,procMap};
 }
 
-// ══════════════════════════════════════════════════
-// Claude API 调用
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
+// Claude API
+// ══════════════════════════════════════
 async function callClaude(apiKey,prompt){
   const baseUrl=(document.getElementById('apiBase').value||'https://api.anthropic.com').replace(/\/$/,'');
   const resp=await fetch(baseUrl+'/v1/messages',{
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:8000,
-      messages:[{role:'user',content:prompt}]
-    })
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:8000,messages:[{role:'user',content:prompt}]})
   });
   if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'API调用失败')}
-  const data=await resp.json();
-  return data.content[0].text;
+  return(await resp.json()).content[0].text;
 }
 
-function buildPrompt(rows,stats,procAnalysis,fname){
-  // 构建每工序完整数据（FM/FC/S/O/D/AP 全量）
-  const procMap=new Map();
-  rows.forEach(r=>{
-    const p=r.PROCESS||'未知工序';
-    if(!procMap.has(p))procMap.set(p,[]);
-    procMap.get(p).push(r);
-  });
-
-  const procDataLines=[];
+// ══════════════════════════════════════
+// 构建 Prompt（核心：FM覆盖完整性分析）
+// ══════════════════════════════════════
+function buildPrompt(rows,stats,fname){
+  const procMap=stats.procMap;
+  // 每工序详细数据
+  const procLines=[];
   procMap.forEach((prows,pname)=>{
+    const dims=new Set();prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
     const ap=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
-    const dims=new Set();
-    prows.forEach(r=>{getDimsFromM5E(r.M5E).forEach(d=>dims.add(d));getDims(r.FC,r.M5E).forEach(d=>dims.add(d))});
-    const missDims=['人','机','料','法','环','测'].filter(d=>!dims.has(d));
-    // 每工序FM/FC/S/O/D条目（最多8条，优先高S/高D）
-    const sorted=[...prows].sort((a,b)=>safeInt(b.S)-safeInt(a.S)||safeInt(b.D)-safeInt(a.D));
-    const sample=sorted.slice(0,8).map(r=>`  [${r.M5E||'?'}] FM:${r.FM.slice(0,30)} FC:${r.FC.slice(0,40)} S=${r.S} O=${r.O} D=${r.D} AP=${r.AP}${r.PC?' PC:'+r.PC.slice(0,30):''}${r.DC?' DC:'+r.DC.slice(0,25):''}`).join('\n');
-    procDataLines.push(`\n【工序】${pname} (AP-${ap}, 覆盖[${[...dims].join('')}]${missDims.length?', 缺失['+missDims.join('')+']':''}, 共${prows.length}条)\n${sample}`);
+    // 按维度收集FM
+    const byDim={};
+    prows.forEach(r=>{
+      const ds=getDimsFromM5E(r.M5E);
+      ds.forEach(d=>{if(!byDim[d])byDim[d]=[];byDim[d].push(r.FM.replace(/\n/g,'·').slice(0,40))});
+    });
+    const fmSummary=Object.entries(byDim).map(([d,fms])=>`${d}:[${[...new Set(fms)].join('/')}]`).join(' ');
+    const highRisk=prows.filter(r=>safeInt(r.S)>=7||safeInt(r.D)>=6).map(r=>`${r.FM.slice(0,20)}(S=${r.S}/O=${r.O}/D=${r.D})`).join(',');
+    procLines.push(`工序"${pname}" AP-${ap} 覆盖[${[...dims].join('')}]/${6}维 FM摘要:${fmSummary}${highRisk?' 高风险:'+highRisk:''}`);
   });
+  const highRiskAll=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L').sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,12).map(r=>`${r.PROCESS}/${r.FM.slice(0,20)}(S=${r.S}/O=${r.O}/D=${r.D})`).join('\n  ');
+  const tplEx=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2).slice(0,2).map(r=>`  ${r.PROCESS}: PC="${r.PC.slice(0,50)}..."`).join('\n');
 
-  const highRiskRows=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L')
-    .sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,15)
-    .map(r=>`  工序:${r.PROCESS} FM:${r.FM.slice(0,25)} S=${r.S} O=${r.O} D=${r.D} AP=${r.AP} DC:${(r.DC||'').slice(0,30)}`).join('\n');
+  return `你是资深AIAG-VDA PFMEA评审专家（机器人制造15年），精通减速机/轴承/导轨/线束/传感器/润滑/装配等工艺失效模式。
 
-  const templatePCExamples=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2)
-    .slice(0,3).map(r=>`  工序:${r.PROCESS} PC:${r.PC.slice(0,60)}`).join('\n');
+## 文件：${fname}
+工序：${stats.nProc}个 | 分析条目：${stats.n}条 | AP: H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
+PFMEA识别率：${stats.recRate}%（${stats.fullProcs}/${stats.nProc}工序6维度全覆盖）
+平均S：${stats.avgS} | 平均D：${stats.avgD} | PC模板化：${Math.round(stats.pcTpl/stats.n*100)}% | 高D值低效DC：${stats.dcBad}条
 
-  return `你是一位资深的AIAG-VDA PFMEA评审专家，拥有机器人制造行业15年以上工艺设计和质量管控经验，深度掌握减速机/轴承/线束/传感器/精密装配/润滑脂涂覆/ESD防护等专项工艺知识。
+## 高风险条目（前12条）
+  ${highRiskAll}
 
-## PFMEA文件信息
-文件：${fname}
-工序数：${stats.nProc}个 | 分析条目：${stats.n}条（5M1E总计）| AP分布：H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
-PFMEA识别率：${stats.recognitionRate}%（${stats.fullProcs}/${stats.nProc}个工序完整覆盖6维度）
-平均S：${stats.avgS} | 平均D：${stats.avgD} | PC模板化：${Math.round(stats.pcTemplateCount/stats.n*100)}% | 高D值低效DC：${stats.dcBad}条 | 步骤6缺失：${stats.step6Miss}条
+## PC模板化示例
+${tplEx||'  无明显模板化'}
 
-## 高风险条目（S≥7或AP-H/M，前15条）
-${highRiskRows||'无'}
+## 各工序FM摘要（${procMap.size}个工序）
+${procLines.join('\n')}
 
-## 模板化PC示例
-${templatePCExamples||'无明显模板化'}
+## 核心评审任务
+**重点：逐工序识别失效模式覆盖完整性——该工序类型在行业中通常需要识别哪些FM，当前PFMEA遗漏了什么**
 
-## 各工序详细数据
-${procDataLines.join('\n')}
+对每个工序：
+1. 基于工序名称判断工序类型（减速机安装/轴承装配/导轨安装/线束走线/传感器安装/螺钉紧固/润滑脂涂覆等）
+2. 列出该类工序行业标准应覆盖的典型FM清单（来自你的专业知识库）
+3. 对比当前PFMEA已有的FM，识别**遗漏的FM（知识库未覆盖项）**
+4. 给出3条针对性改进建议
 
-## 评审任务
-请基于AIAG-VDA第5版、机器人制造行业历史案例（线束走线/润滑脂涂覆/传感器角度偏差/ESD防护/轴承安装/减速机密封/齿面磨损等高频失效）和工艺设计准则，生成专业深度评审报告。
-
-**核心要求（必须遵守）：**
-1. 所有分析必须引用真实工序名、实际FM文本、真实S/O/D数值——禁止泛泛而谈
-2. 缺点必须指明"工序XXX（S=Y/O=Z/D=W）的具体问题是..."
-3. 改进措施必须包含：受影响工序名 + 当前状态 + 具体改进手段 + 预期效果
-4. 知识库未覆盖项：基于行业知识判断该工序类型通常还应识别哪些失效模式（但当前PFMEA未包含）
-5. 每工序改进建议必须针对该工序的实际数据，不能套用通用模板
-
-## 输出格式（严格JSON，所有值为中文字符串）
+## 输出（严格JSON，中文）
 \`\`\`json
 {
-  "initGrade": "X",
-  "initScore": 数字,
-  "optGrade": "X",
-  "optScore": 数字,
-  "initSummary": "2-3句，引用具体工序数/AP分布/识别率等实际数字",
-  "coreFindings": "100-150字核心问题，必须引用具体工序名和数值",
+  "initGrade": "B-",
+  "initScore": 62,
+  "optGrade": "B+",
+  "optScore": 78,
+  "initSummary": "2-3句综合评价，必须引用具体工序名和S/O/D数值",
+  "coreFindings": "核心问题（120字内），引用具体工序名和FM内容",
   "upgradeDirections": [
-    {"from": "当前具体问题（工序名+具体症状）", "to": "具体改进目标和方法"},
+    {"from": "具体现状（引用工序名+数值）", "to": "具体改进目标（可操作）"},
     {"from": "...", "to": "..."},
     {"from": "...", "to": "..."},
     {"from": "...", "to": "..."}
   ],
   "priorityActions": [
-    {"label": "≤4字标签", "color": "#色值", "text": "工序名+当前S/O/D+具体操作+预期效果（60-100字）"},
+    {"label": "≤4字", "color": "#2c5fc0", "text": "具体操作（工序名+S/O/D+改进手段+预期效果，80字内）"},
     {"label": "...", "color": "...", "text": "..."},
     {"label": "...", "color": "...", "text": "..."}
   ],
+  "expectedChange": "执行后预期改善效果，含具体数字",
   "strengths": [
-    {"tag": "优点标签", "detail": "引用数据的具体描述（30-60字）"},
+    {"tag": "标签", "detail": "引用数据的具体描述（40字内）"},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."}
   ],
   "weaknesses": [
-    {"level": "高", "title": "具体问题标题", "detail": "必须含工序名+S/O/D值+FM文本（60-100字）"},
+    {"level": "高", "title": "问题标题", "detail": "工序名+FM内容+S/O/D+具体问题（70字内）"},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
+    {"level": "中", "title": "...", "detail": "..."},
     {"level": "中", "title": "...", "detail": "..."},
     {"level": "中", "title": "...", "detail": "..."},
     {"level": "中", "title": "...", "detail": "..."}
   ],
   "improvements": {
-    "A": [
-      "工序XXX：当前FC描述为'...'，与FM'...'严重脱节——立即重写为：[具体触发条件]，对应PC改为：[具体防止手段]，DC改为：[具体检测手段]，预期D值从X降至Y",
-      "...",
-      "...",
-      "..."
-    ],
-    "B": ["...", "...", "...", "..."],
-    "C": ["...", "...", "..."]
+    "A": ["工序名：具体操作（当前状态→改后状态+工具/方法+预期效果）", "...", "...", "..."],
+    "B": ["...", "...", "...", "...", "..."],
+    "C": ["...", "...", "...", "...", "..."]
   },
-  "optSummary": "优化后预期状态，2-3句，含具体数字目标",
-  "coreRequirements": "3-4条关键量化指标，每条含具体数字",
-  "expectedChange": "预期改善效果，含AP-H从X降至Y、D值从X降至Y等具体数字",
+  "optSummary": "优化后预期状态（2句，含数字）",
+  "coreRequirements": "核心要求（3-4条，每条含量化指标）",
   "procDetails": [
     {
       "name": "工序名（与输入完全一致）",
-      "lawFMs": ["该工序法维度识别到的具体失效模式1", "..."],
+      "fmCoverage": 65,
+      "lawFMs": ["当前PFMEA中法维度已识别的FM1", "FM2", "FM3"],
       "libGaps": [
-        "行业通常还应识别：[具体FM点]（该工序类型常见但当前PFMEA未包含）",
-        "...",
-        "..."
+        "【遗漏FM】该工序类型通常还需识别：具体FM描述（说明为何重要）",
+        "【遗漏FM】...",
+        "【遗漏FM】..."
       ],
       "suggestions": [
-        "针对该工序的具体改进：[当前问题] → [具体操作] + [预期效果]",
+        "针对该工序的具体改进：当前问题→具体操作+预期效果",
         "...",
         "..."
       ]
@@ -578,112 +495,177 @@ ${procDataLines.join('\n')}
   ]
 }
 \`\`\`
-
-注意：procDetails 必须包含所有 ${procMap.size} 个工序的分析（按输入顺序）。libGaps 是基于你的行业知识判断，不依赖输入数据中是否存在。`;
+注意：procDetails必须包含全部${procMap.size}个工序。libGaps是基于行业知识的FM完整性缺口，不是当前PFMEA的技术错误。每个工序至少2条libGaps。`;
 }
 
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 // 主流程
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 let lastEv=null;
-
 async function startReview(){
-  const aiEnabled=document.getElementById('aiEnabled').checked;
-  const apiKey=aiEnabled?document.getElementById('apiKey').value.trim():'';
+  const aiOn=document.getElementById('aiOn').checked;
+  const apiKey=aiOn?document.getElementById('apiKey').value.trim():'';
   setLoading(true,'正在读取 PFMEA 文件...',10);
   try{
     const wb1=await readFile(files[1]);
-    setLoading(true,'正在解析 PFMEA 数据...',25);
+    setLoading(true,'正在解析数据...',25);
     const pfmea=parsePfmea(wb1);
+    if(!pfmea.rows.length)throw new Error('未读取到有效PFMEA数据，请检查文件格式');
     let lib=[];
-    if(files[2]){
-      setLoading(true,'正在读取失效模式库...',35);
-      const wb2=await readFile(files[2]);
-      lib=parseLibrary(wb2);
-    }
-    setLoading(true,'正在分析5M1E覆盖度...',50);
-    await new Promise(r=>setTimeout(r,50));
-    const stats=builtinEvaluate(pfmea.rows,lib,files[1].name);
-    const procAnalysis=buildProcAnalysis(pfmea.rows,lib);
-
+    if(files[2]){setLoading(true,'正在读取失效模式库...',35);const wb2=await readFile(files[2]);lib=parseLibrary(wb2)}
+    setLoading(true,'正在统计分析...',50);
+    await new Promise(r=>setTimeout(r,30));
+    const stats=calcStats(pfmea.rows);
     let aiResult=null;
     if(apiKey){
-      setLoading(true,'正在调用 Claude AI 深度分析（约15-30秒）...',65);
+      setLoading(true,'正在调用 Claude AI 深度评审（约20-40秒）...',60);
       try{
-        const prompt=buildPrompt(pfmea.rows,stats,procAnalysis,files[1].name);
+        const prompt=buildPrompt(pfmea.rows,stats,files[1].name);
         const raw=await callClaude(apiKey,prompt);
-        const jsonMatch=raw.match(/```json\s*([\s\S]*?)\s*```/);
-        if(jsonMatch)aiResult=JSON.parse(jsonMatch[1]);
-        else aiResult=JSON.parse(raw);
+        const m=raw.match(/```json\s*([\s\S]*?)\s*```/);
+        aiResult=JSON.parse(m?m[1]:raw);
+        setLoading(true,'AI评审完成，正在生成报告...',90);
       }catch(e){
-        console.warn('AI分析失败，使用规则引擎：',e.message);
-        setLoading(true,'AI分析遇到问题，使用内置规则引擎...',70);
-        await new Promise(r=>setTimeout(r,800));
+        console.warn('AI分析失败，切换规则引擎：',e.message);
+        setLoading(true,'AI分析遇到问题，使用内置规则引擎...',75);
+        await new Promise(r=>setTimeout(r,600));
       }
     }
-    setLoading(true,'正在生成报告...',90);
-    await new Promise(r=>setTimeout(r,50));
-    lastEv={pfmea,stats,procAnalysis,lib,aiResult,fname:files[1].name};
+    setLoading(true,'正在渲染报告...',95);
+    await new Promise(r=>setTimeout(r,30));
+    lastEv={pfmea,stats,lib,aiResult,fname:files[1].name};
     renderReport(lastEv);
     setLoading(false);
     document.getElementById('uploadWrap').style.display='none';
-    document.getElementById('reportWrap').style.display='flex';
+    document.getElementById('rptWrap').style.display='flex';
   }catch(err){
     setLoading(false);
     const msg=err&&err.message?err.message:String(err);
     const stack=err&&err.stack?'\n'+err.stack.split('\n').slice(0,3).join('\n'):'';
     alert('处理失败：'+msg+stack);
-    console.error('处理失败 full error:',err);
+    console.error(err);
   }
 }
 
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════
 // 渲染报告
-// ══════════════════════════════════════════════════
-function sbar(s,c){const w=Math.max(4,Math.round(s));return`<div style="background:#e8ecf4;border-radius:3px;height:5px;margin:3px 0 5px"><div style="background:${c};width:${w}%;height:5px;border-radius:3px"></div></div>`}
+// ══════════════════════════════════════
+function sbar(v,c,max100){const w=Math.max(4,Math.min(100,Math.round(max100?v:v)));return`<div style="background:#e0e0e0;border-radius:4px;height:5px;margin:3px 0"><div style="background:${c};width:${w}%;height:5px;border-radius:4px"></div></div>`}
 
-function renderReport({pfmea,stats,procAnalysis,lib,aiResult,fname}){
+function renderReport({pfmea,stats,lib,aiResult,fname}){
   const ai=aiResult;
   const now=new Date().toLocaleString('zh-CN');
-  document.getElementById('rptTitle').textContent=ai?'PFMEA AI 评审报告（Claude深度分析）':'PFMEA AI 评审报告';
-  document.getElementById('rptMeta').textContent=`生成时间：${now}  |  文件：${fname}  |  工序：${stats.nProc}个  |  分析数量：${stats.n}条  |  ${ai?'已启用 Claude AI 分析':'规则引擎分析'}`;
+  const useAI=!!ai;
+  document.getElementById('rptTitle').textContent=useAI?'PFMEA AI 评审报告（Claude深度分析）':'PFMEA AI 评审报告';
+  document.getElementById('rptMeta').textContent=`生成时间：${now}  |  文件：${fname}  |  工序：${stats.nProc}个  |  分析条目：${stats.n}条  |  ${useAI?'已启用 Claude AI 分析':'规则引擎分析'}`;
 
-  // ── Stats bar（7列）──
-  const items=[
+  // ── KPI ──
+  document.getElementById('statsBar').innerHTML=[
     ['#e8eef8','#1a3a7a',stats.nProc,'个工序'],
-    ['#e8eef8','#2c5a9a',stats.n,'条分析数量（5M1E）'],
+    ['#e8eef8','#2c5a9a',stats.n,'条分析数量'],
     ['#c0392b','#fff',stats.apH+'项','AP-H 高风险'],
     ['#e67e22','#fff',stats.apM+'项','AP-M 中风险'],
     ['#27ae60','#fff',stats.apL+'项','AP-L 低风险'],
-    [stats.recognitionRate>=80?'#1a6b3a':'#e67e22','#fff',stats.recognitionRate+'%','PFMEA识别率'],
-    [ai?'#6c3483':'#7f8c8d','#fff',ai?'AI分析':'规则引擎','分析方式']
-  ];
-  document.getElementById('statsBar').innerHTML=items.map(([bg,fc,v,l])=>
-    `<div class="stat-item" style="background:${bg}"><div class="stat-val" style="color:${fc}">${v}</div><div class="stat-lbl" style="color:${fc}">${l}</div></div>`).join('');
+    [stats.recRate>=80?'#1a6b3a':'#e67e22','#fff',stats.recRate+'%','PFMEA识别率'],
+    [useAI?'#6c3483':'#7f8c8d','#fff',useAI?'AI分析':'规则引擎','分析方式']
+  ].map(([bg,fc,v,l])=>`<div class="stat-item" style="background:${bg}"><div class="stat-val" style="color:${fc}">${v}</div><div class="stat-lbl" style="color:${fc}">${l}</div></div>`).join('');
 
-  const initGrade=ai?ai.initGrade:getGrade(50+(stats.recognitionRate-50)*.5-(stats.pcTemplateCount/stats.n)*30);
-  const optGrade=ai?ai.optGrade:getGrade(Math.min(100,parseInt(initGrade.replace('+','').replace('-',''))*10+15));
-  const gc=gradeColor(initGrade),igc=gradeColor(optGrade);
+  const iG=ai?ai.initGrade:getGrade(40+(stats.recRate-50)*.4-(stats.pcTpl/stats.n)*25-(stats.dcBad/Math.max(1,stats.n))*15);
+  const oG=ai?ai.optGrade:getGrade(Math.min(95,parseFloat(iG.replace(/[^0-9]/g,''))*8+25));
+  const gc=gradeColor(iG),igc=gradeColor(oG);
 
   // ── 初始结论 ──
-  const initBody=ai?buildInitFromAI(ai,stats,gc)
-    :buildInitBuiltin(stats,procAnalysis,gc);
+  let col1='';
+  if(ai){
+    const upgs=(ai.upgradeDirections||[]).map(u=>`<div class="upgrade-row"><span class="upg-from">${u.from}</span><span class="upg-arrow">→</span><span class="upg-to">${u.to}</span></div>`).join('');
+    const acts=(ai.priorityActions||[]).map(a=>`<div class="action-row"><span class="action-lbl" style="background:${a.color||'#2c5fc0'}">${a.label}</span><span class="action-text">${a.text}</span></div>`).join('');
+    col1=`<div class="grade-circle" style="color:${gc};border-color:${gc}">${ai.initGrade}</div>
+<div class="col-subhead">综合评分 ${ai.initScore}</div>
+<span class="ai-badge">🤖 Claude AI 深度分析</span>
+<div class="init-summary">${ai.initSummary}</div>
+<div class="core-finding"><strong>核心问题</strong><br>${ai.coreFindings}</div>
+<div class="upgrade-block"><div class="col-subhead" style="margin-top:10px">升级方向</div>${upgs}</div>
+<div class="actions-block"><div class="col-subhead" style="margin-top:10px">本次优先行动 <span style="font-size:.75rem">(Top ${(ai.priorityActions||[]).length})</span></div>${acts}</div>
+<div class="expected-change"><strong>预期改善：</strong>${ai.expectedChange||''}</div>`;
+  }else{
+    const iScore=Math.round(40+(stats.recRate-50)*.4-(stats.pcTpl/Math.max(1,stats.n))*25);
+    col1=`<div class="grade-circle" style="color:${gc};border-color:${gc}">${iG}</div>
+<div class="col-subhead">综合评分 ${iScore}（规则引擎）</div>
+<div class="init-summary">本PFMEA覆盖${stats.nProc}个工序，${stats.n}条5M1E分析数据，PFMEA识别率${stats.recRate}%（${stats.fullProcs}/${stats.nProc}工序完整覆盖6维度）。</div>
+<div class="core-finding"><strong>核心问题</strong><br>
+${stats.r1Bad>0?`${stats.r1Bad}条FC使用通用描述未对应具体FM；`:''}
+${stats.pcTpl>0?`${stats.pcTpl}条PC高度模板化（${Math.round(stats.pcTpl/stats.n*100)}%）；`:''}
+${stats.dcBad>0?`${stats.dcBad}条D≥6条目DC仅目视检查；`:''}
+${stats.step6Miss>0?`${stats.hmCount}条AP-H/M中${stats.step6Miss}条步骤6为空。`:''}
+建议启用 Claude AI 分析获取深度评审结论。</div>
+<div class="upgrade-block"><div class="col-subhead" style="margin-top:8px">升级方向</div>
+<div class="upgrade-row"><span class="upg-from">FM覆盖率${stats.recRate}%，${stats.nProc-stats.fullProcs}个工序5M1E维度不全</span><span class="upg-arrow">→</span><span class="upg-to">逐工序补充缺失维度FM，确保每工序6维度全覆盖</span></div>
+${stats.dcBad>0?`<div class="upgrade-row"><span class="upg-from">${stats.dcBad}条高D值条目DC仅目视检查</span><span class="upg-arrow">→</span><span class="upg-to">升级为量化检测手段，目标D≤4</span></div>`:''}
+</div>`;
+  }
 
   // ── 优点 ──
-  const strBody=ai?ai.strengths.map(s=>`<div class="str-item"><span class="str-tag">${s.tag}</span><span class="str-detail">${s.detail}</span></div>`).join('')
-    :buildStrBuiltin(stats,procAnalysis);
+  let col2='';
+  if(ai&&ai.strengths){
+    col2=ai.strengths.map(s=>`<div class="strength-item"><span class="str-tag">${s.tag}</span><span class="str-detail">${s.detail}</span></div>`).join('');
+  }else{
+    const ss=[];
+    if(stats.recRate>=70)ss.push({t:'框架完整性好',d:`${stats.nProc}个工序全部涵盖5M1E六个维度，结构化程度高`});
+    ss.push({t:'量化指标有基础',d:`统一采用S/O/D量化评分，AP分布H=${stats.apH}/M=${stats.apM}/L=${stats.apL}`});
+    if(stats.apH===0)ss.push({t:'高风险管控好',d:'无AP-H高风险条目，整体风险在可接受范围内'});
+    if(stats.dVar>0.5)ss.push({t:'探测度区分明确',d:`D值方差${stats.dVar}，评分有合理区分度`});
+    ss.push({t:'建议启用AI分析',d:'输入 Claude API Key 可获得深度FM覆盖完整性分析和具体改进建议'});
+    col2=ss.map(s=>`<div class="strength-item"><span class="str-tag">${s.t}</span><span class="str-detail">${s.d}</span></div>`).join('');
+  }
 
   // ── 缺点 ──
-  const weakBody=ai?buildWeakFromAI(ai)
-    :buildWeakBuiltin(stats,procAnalysis);
+  let col3='';
+  if(ai&&ai.weaknesses){
+    col3=ai.weaknesses.map(w=>{const bc=w.level==='高'?'#e74c3c':'#e67e22';return`<div class="weakness-item"><span class="sev-badge" style="background:${bc}">${w.level}</span><span class="weak-content"><strong>${w.title}</strong><br>${w.detail}</span></div>`}).join('');
+  }else{
+    const wk=[];
+    if(stats.r1Bad>0)wk.push({lv:'高',bc:'#e74c3c',t:'FC与FM严重脱节',d:`${stats.r1Bad}条FC使用通用描述，导致PC和DC无法针对性覆盖真实根因`});
+    if(stats.pcTpl>stats.n*.2)wk.push({lv:'高',bc:'#e74c3c',t:'PC高度模板化',d:`${stats.pcTpl}条PC几乎完全相同，丧失针对性`});
+    if(stats.dcBad>0)wk.push({lv:'高',bc:'#e74c3c',t:'DC有效性不足',d:`${stats.dcBad}条D≥6条目DC仅目视检查`});
+    if(stats.step6Miss>0)wk.push({lv:'中',bc:'#e67e22',t:'步骤6缺失',d:`${stats.hmCount}条AP-H/M中${stats.step6Miss}条改进措施为空`});
+    col3=wk.length?wk.map(w=>`<div class="weakness-item"><span class="sev-badge" style="background:${w.bc}">${w.lv}</span><span class="weak-content"><strong>${w.t}</strong><br>${w.d}</span></div>`).join('')
+      :`<p style="color:#888;font-size:.8rem">建议启用 Claude AI 分析获取深度缺陷分析</p>`;
+  }
 
   // ── 改进措施 ──
-  const imprBody=ai?buildImprFromAI(ai)
-    :buildImprBuiltin(stats,procAnalysis);
+  let col4='';
+  if(ai&&ai.improvements){
+    const cfg=[['A','急迫改进','#fde8e8','#7b0d0d'],['B','重点改进','#fef3e2','#7a4200'],['C','计划中','#e8f8ee','#1a4a2e']];
+    col4=cfg.filter(([k])=>ai.improvements[k]&&ai.improvements[k].length).map(([k,lbl,bg,tc])=>`
+<div class="impr-group"><div class="impr-group-header" style="background:${bg};color:${tc}">${k}级 ${lbl}</div>
+<ul class="impr-list">${ai.improvements[k].map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('');
+  }else{
+    col4=`<div class="impr-group"><div class="impr-group-header" style="background:#fde8e8;color:#7b0d0d">A级 急迫改进</div>
+<ul class="impr-list">
+${stats.r1Bad>0?`<li>立即重写通用FC：按5M1E针对具体工序失效分析，删除【操作失误】等无意义描述</li>`:''}
+${stats.pcTpl>0?`<li>消除模板化PC：每条PC与FC形成因果逻辑，提供具体防止手段</li>`:''}
+${stats.dcBad>0?`<li>升级${stats.dcBad}条低效DC：目视检查→量化检测手段（扭矩记录/通断测试/首件确认）</li>`:''}
+</ul></div>
+<div class="impr-group"><div class="impr-group-header" style="background:#fef3e2;color:#7a4200">B级 重点改进</div>
+<ul class="impr-list">
+${stats.step6Miss>0?`<li>补全${stats.step6Miss}条AP-H/M步骤6改进措施，指定责任人和完成日期</li>`:''}
+<li>启用 Claude AI 分析，获取每工序FM覆盖完整性检查和知识库缺口识别</li>
+</ul></div>`;
+  }
 
   // ── 优化后结论 ──
-  const optBody=ai?buildOptFromAI(ai,stats,igc)
-    :buildOptBuiltin(stats,igc,optGrade);
+  let col5='';
+  if(ai){
+    col5=`<div class="grade-circle" style="color:${igc};border-color:${igc}">${ai.optGrade}</div>
+<div class="col-subhead">优化后评级</div>
+<div class="init-summary">${ai.optSummary}</div>
+<div class="core-finding"><strong>核心要求</strong><br>${ai.coreRequirements}</div>`;
+  }else{
+    col5=`<div class="grade-circle" style="color:${igc};border-color:${igc}">${oG}</div>
+<div class="col-subhead">优化后评级（规则引擎预测）</div>
+<div class="init-summary">执行改进措施后，PFMEA识别率预计提升至≥90%，PC针对性大幅提高，DC升级为量化手段。</div>
+<div class="core-finding"><strong>核心要求</strong><br>FC→PC→DC三链对应；每条高风险FM有可验证实物探测手段；PFMEA识别率≥90%；步骤6完成率100%</div>`;
+  }
 
   document.getElementById('mainTable').innerHTML=`
     <div class="col-hdr ch-init">◆ 初始结论 (Conclusions)</div>
@@ -691,46 +673,59 @@ function renderReport({pfmea,stats,procAnalysis,lib,aiResult,fname}){
     <div class="col-hdr ch-weak">✘ 缺点 (Weaknesses)</div>
     <div class="col-hdr ch-impr">▶ 改进措施 (Improvements)</div>
     <div class="col-hdr ch-opt">◆ 优化后结论 (Conclusions)</div>
-    <div class="col-body">${initBody}</div>
-    <div class="col-body">${strBody}</div>
-    <div class="col-body">${weakBody}</div>
-    <div class="col-body">${imprBody}</div>
-    <div class="col-body">${optBody}</div>`;
+    <div class="col-body">${col1}</div>
+    <div class="col-body">${col2}</div>
+    <div class="col-body">${col3}</div>
+    <div class="col-body">${col4}</div>
+    <div class="col-body">${col5}</div>`;
 
-  // ── 各工序卡片（优先用AI procDetails）──
+  // ── 各工序卡片 ──
   const rc={H:'#c0392b',M:'#e67e22',L:'#27ae60'};
   const rl={H:'AP-H 高风险',M:'AP-M 中风险',L:'AP-L 低风险'};
   const allDims=['人','机','料','法','环','测'];
+  const aiMap=new Map();
+  if(ai&&ai.procDetails)ai.procDetails.forEach(pd=>{if(pd&&pd.name)aiMap.set(pd.name,pd)});
 
-  const aiProcMap=new Map();
-  if(ai&&ai.procDetails){ai.procDetails.forEach(pd=>{if(pd&&pd.name)aiProcMap.set(pd.name,pd)})}
+  // 构建本地工序列表
+  const procList=[];
+  stats.procMap.forEach((prows,pname)=>{
+    const dims=new Set();prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
+    const missDims=allDims.filter(d=>!dims.has(d));
+    const ap=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
+    const lawFMs=[...new Set(prows.filter(r=>r.M5E&&(r.M5E.includes('法')||r.M5E.includes('SOP'))).map(r=>r.FM.replace(/\n/g,'·').slice(0,40)))].slice(0,7);
+    procList.push({name:pname,dims:[...dims],missDims,ap,rowCount:prows.length,lawFMs});
+  });
 
-  document.getElementById('tocLinks').innerHTML=procAnalysis.procList.map((p,i)=>
-    `<a href="#proc-${i}" class="proc-link" data-idx="${i}"><span class="toc-dot" style="background:${rc[p.maxAP]}"></span>${p.name}</a>`).join('');
+  document.getElementById('tocLinks').innerHTML=procList.map((p,i)=>`<a href="#pc-${i}" class="proc-link" data-idx="${i}"><span class="toc-dot" style="background:${rc[p.ap]}"></span>${p.name}</a>`).join('');
 
-  document.getElementById('procCards').innerHTML=procAnalysis.procList.map((p,i)=>{
-    const dimPills=allDims.map(d=>`<span class="dim-pill ${p.dims.includes(d)?'dim-ok':'dim-miss'}">${d}</span>`).join('');
-    const aiPD=aiProcMap.get(p.name);
-    const aiBadge=aiPD?`<span style="background:#f0e8ff;border:1px solid #9b59b6;color:#7d3c98;padding:1px 6px;border-radius:8px;font-size:.68rem;margin-left:6px">AI</span>`:'';
-
-    const lawFMs=aiPD&&aiPD.lawFMs&&aiPD.lawFMs.length?aiPD.lawFMs:p.lawFMs;
+  document.getElementById('procCards').innerHTML=procList.map((p,i)=>{
+    const aipd=aiMap.get(p.name);
+    const coverPct=aipd&&aipd.fmCoverage?aipd.fmCoverage:Math.round((p.dims.length/6)*60+((6-p.missDims.length)/6)*40);
+    const barColor=coverPct>=80?'#27ae60':coverPct>=60?'#e67e22':'#e74c3c';
+    const dimPills=allDims.map(d=>`<span class="${p.dims.includes(d)?'dim-ok':'dim-miss'}">${d}</span>`).join('');
+    const lawFMs=aipd&&aipd.lawFMs&&aipd.lawFMs.length?aipd.lawFMs:p.lawFMs;
+    const gaps=aipd&&aipd.libGaps&&aipd.libGaps.length?aipd.libGaps:[];
+    const suggs=aipd&&aipd.suggestions&&aipd.suggestions.length?aipd.suggestions:[];
+    const aiBadge=aipd?`<span style="background:#f0e8ff;border:1px solid #9b59b6;color:#7d3c98;padding:1px 6px;border-radius:8px;font-size:.67rem;margin-left:5px">AI</span>`:'';
     const lawSec=lawFMs.length?`<div class="proc-sub"><strong>⚙️ 法维度失效模式</strong><ul>${lawFMs.map(f=>`<li>${f}</li>`).join('')}</ul></div>`:'';
-
-    const gaps=aiPD&&aiPD.libGaps&&aiPD.libGaps.length?aiPD.libGaps:(p.gaps.length?p.gaps.map(g=>`知识库未收录：${g}`):[]);
     const gapSec=gaps.length?`<div class="proc-sub warn-sub"><strong>⚠️ 知识库未覆盖项</strong><ul>${gaps.map(g=>`<li>${g}</li>`).join('')}</ul></div>`:'';
-
-    const suggs=aiPD&&aiPD.suggestions&&aiPD.suggestions.length?aiPD.suggestions:p.suggs;
-    const suggSec=suggs.length?`<div class="proc-sub sugg-sub"><strong>💡 改进建议</strong><ul>${suggs.map(s=>`<li>${s}</li>`).join('')}</ul></div>`
-      :`<div class="proc-sub" style="color:#aaa;padding:6px 14px;font-size:.79rem">✓ 暂无改进建议</div>`;
-    return`<div class="proc-card" id="proc-${i}">
-      <div class="proc-hdr">
-        <span class="proc-name">${p.name}${aiBadge}</span>
-        <span class="cov-count">${p.dims.length}/6 维度 · ${p.rowCount}条分析</span>
-        <span class="risk-badge" style="background:${rc[p.maxAP]}">${rl[p.maxAP]}</span>
-      </div>
-      <div class="dim-row">${dimPills}</div>
-      ${lawSec}${gapSec}${suggSec}
-    </div>`;
+    const suggSec=suggs.length?`<div class="proc-sub sugg-sub"><strong>💡 改进建议</strong><ul>${suggs.map(s=>`<li>${s}</li>`).join('')}</ul></div>`:`<div class="proc-sub" style="color:#aaa;font-size:.79rem;padding:6px 14px">✓ 暂无改进建议</div>`;
+    return`<div class="process-card" id="pc-${i}">
+  <div class="process-header">
+    <span class="process-name">${p.name}${aiBadge}</span>
+    <span class="cov-counter">${p.dims.length}/6 维度 · FM覆盖率 ${coverPct}% · ${p.rowCount}条</span>
+    <span class="risk-badge" style="background:${rc[p.ap]}">${rl[p.ap]}</span>
+  </div>
+  <div class="coverage-row">${dimPills}</div>
+  <div class="proc-sub" style="padding:6px 14px 4px">
+    <div class="fm-cover-bar">
+      <span style="font-size:.72rem;color:#666">FM覆盖完整性</span>
+      <div class="fm-bar-bg"><div class="fm-bar-fill" style="width:${coverPct}%;background:${barColor}"></div></div>
+      <span class="fm-cover-pct" style="color:${barColor}">${coverPct}%</span>
+    </div>
+  </div>
+  ${lawSec}${gapSec}${suggSec}
+</div>`;
   }).join('');
 
   // Scrollspy
@@ -740,130 +735,8 @@ function renderReport({pfmea,stats,procAnalysis,lib,aiResult,fname}){
       const lk=document.querySelector(`.proc-link[data-idx="${e.target.id.split('-')[1]}"]`);
       if(lk){lk.classList.add('active');lk.scrollIntoView({block:'nearest',behavior:'smooth'})}
     }})},{threshold:.25});
-    document.querySelectorAll('.proc-card').forEach(c=>obs.observe(c));
+    document.querySelectorAll('.process-card').forEach(c=>obs.observe(c));
   },600);
-}
-
-// ── AI结果渲染 ──
-function buildInitFromAI(ai,stats,gc){
-  const ruleData=`
-    <div style="background:#f4f6fb;border-radius:6px;padding:10px;margin-top:10px">
-      <div style="font-size:.7rem;color:#888;margin-bottom:7px;font-weight:700">各维度量化指标</div>
-      ${[['PFMEA识别率',stats.recognitionRate,'%',stats.recognitionRate>=80?'#27ae60':'#e67e22'],
-         ['PC模板化率',Math.round(stats.pcTemplateCount/stats.n*100),'%',stats.pcTemplateCount/stats.n>0.3?'#e74c3c':'#27ae60'],
-         ['高D值低效DC',stats.dcBad,'条',stats.dcBad>0?'#e74c3c':'#27ae60'],
-         ['步骤6缺失',stats.step6Miss,'条',stats.step6Miss>0?'#e67e22':'#27ae60']]
-        .map(([n,v,u,c])=>`<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:.7rem"><span>${n}</span><span style="color:${c};font-weight:700">${v}${u}</span></div>${sbar(Math.min(100,v),c)}</div>`).join('')}
-    </div>`;
-  const upgs=ai.upgradeDirections?ai.upgradeDirections.map(u=>`<div class="upg-row"><span class="upg-from">${u.from}</span><span class="upg-arrow">→</span><span class="upg-to">${u.to}</span></div>`).join(''):'';
-  const acts=ai.priorityActions?ai.priorityActions.map(a=>`<div class="action-row"><span class="action-lbl" style="background:${a.color||'#2980b9'}">${a.label}</span><span class="action-text">${a.text}</span></div>`).join(''):'';
-  return`<div class="grade-circle" style="color:${gc};border-color:${gc}">${ai.initGrade}</div>
-<div class="col-sub">综合评分 ${ai.initScore}</div>
-<div class="ai-badge">🤖 Claude AI 深度分析</div>
-<p class="init-summary" style="font-size:.8rem">${ai.initSummary}</p>
-<div class="core-finding"><strong>核心问题</strong><br>${ai.coreFindings}</div>
-<div style="font-size:.7rem;color:#888;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">升级方向</div>
-${upgs}
-<div style="font-size:.7rem;color:#888;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">本次优先行动</div>
-${acts}
-${ruleData}`;
-}
-
-function buildWeakFromAI(ai){
-  const bc={高:'#e74c3c',中:'#e67e22',低:'#27ae60'};
-  return ai.weaknesses.map(w=>`<div class="weak-item"><span class="sev-badge" style="background:${bc[w.level]||'#888'}">${w.level}</span><span class="weak-content"><strong>${w.title}</strong><br>${w.detail}</span></div>`).join('');
-}
-
-function buildImprFromAI(ai){
-  const cfg=[['A','急迫改进','#fde8e8','#7b0d0d'],['B','重点改进','#fef3e2','#7a4200'],['C','计划中','#e8f8ee','#1a4a2e']];
-  return cfg.filter(([k])=>ai.improvements&&ai.improvements[k]&&ai.improvements[k].length).map(([k,label,bg,tc])=>`
-<div class="impr-group">
-  <div class="impr-hdr" style="background:${bg};color:${tc}">${k}级 ${label}</div>
-  <ul class="impr-list">${ai.improvements[k].map(x=>`<li>${x}</li>`).join('')}</ul>
-</div>`).join('');
-}
-
-function buildOptFromAI(ai,stats,igc){
-  return`<div class="grade-circle" style="color:${igc};border-color:${igc}">${ai.optGrade}</div>
-<div class="col-sub">优化后评分 ${ai.optScore}</div>
-<p class="init-summary">${ai.optSummary}</p>
-<div class="core-finding"><strong>核心要求</strong><br>${ai.coreRequirements}</div>
-<div class="expected"><strong>预期改善：</strong>${ai.expectedChange}</div>`;
-}
-
-function buildStrBuiltin(stats,pa){
-  const s=[];
-  if(stats.recognitionRate>=70)s.push({tag:'5M1E框架完整',det:`${pa.fullCoverage}/${pa.total}个工序完整覆盖6个维度，结构化分析基础扎实`});
-  s.push({tag:'量化评分体系',det:`${stats.n}条5M1E分析均采用S/O/D三维量化评分，具备数据追溯基础`});
-  if(stats.apH===0)s.push({tag:'高风险管控好',det:'无AP-H高风险条目，整体风险控制在可接受范围内'});
-  if(stats.dVar>0.5)s.push({tag:'探测度区分明确',det:`D值方差${stats.dVar}，探测度评分有合理区分度`});
-  if(!s.length)s.push({tag:'基础框架建立',det:`完成了${stats.nProc}个工序的PFMEA基础分析`});
-  return s.map(x=>`<div class="str-item"><span class="str-tag">${x.tag}</span><span class="str-detail">${x.det}</span></div>`).join('');
-}
-
-function buildWeakBuiltin(stats,pa){
-  const bc={高:'#e74c3c',中:'#e67e22'};
-  const wk=[];
-  if(stats.r1Bad>0)wk.push({lv:'高',t:'FC通用化严重',d:`${stats.r1Bad}条FC使用通用描述（操作失误/螺钉扭矩等），未对应具体FM特征`});
-  if(stats.pcTemplateCount>stats.n*.2)wk.push({lv:'高',t:'PC高度模板化',d:`${stats.pcTemplateCount}条(${Math.round(stats.pcTemplateCount/stats.n*100)}%)PC模板重复，失去针对性`});
-  if(stats.dcBad>0)wk.push({lv:'高',t:'DC有效性不足',d:`${stats.dcBad}条D≥6条目DC仅为目视检查，探测能力存疑`});
-  const missDimProcs=pa.procList.filter(p=>p.missDims.length>0);
-  if(missDimProcs.length)wk.push({lv:'中',t:`${missDimProcs.length}个工序5M1E维度缺失`,d:missDimProcs.slice(0,2).map(p=>`${p.name}缺失[${p.missDims.join('/')}]`).join('；')});
-  if(stats.step6Miss>0)wk.push({lv:'中',t:'步骤6改进措施缺失',d:`${stats.hmCount}条AP-H/M中有${stats.step6Miss}条改进措施为空`});
-  return wk.length?wk.map(w=>`<div class="weak-item"><span class="sev-badge" style="background:${bc[w.lv]||'#888'}">${w.lv}</span><span class="weak-content"><strong>${w.t}</strong><br>${w.d}</span></div>`).join('')
-    :`<p style="color:#888">数据充分分析中，暂未发现明显系统性缺陷</p>`;
-}
-
-function buildImprBuiltin(stats,pa){
-  const iA=[],iB=[],iC=[];
-  if(stats.r1Bad>0)iA.push('立即重写通用FC：按5M1E维度针对具体工序分析，删除【操作失误】等无意义描述');
-  if(stats.pcTemplateCount>stats.n*.2)iA.push('消除PC模板化：每条PC必须与FC形成因果逻辑，提供具体防止手段（防错工装/定量工具/SOP图示）');
-  if(stats.dcBad>0)iA.push(`升级${stats.dcBad}条低效DC：目视检查→量化检测手段（电气通断测试/扭矩记录/首件确认+留影）`);
-  if(stats.step6Miss>0)iB.push(`补全${stats.step6Miss}条AP-H/M步骤6改进措施，指定责任人和完成日期`);
-  pa.procList.filter(p=>p.missDims.length>0).slice(0,3).forEach(p=>iB.push(`工序"${p.name}"：补充${p.missDims.join('/')}维度失效原因分析`));
-  iC.push('建立扭矩数据MES自动采集系统，替代人工记录');
-  iC.push('推进物料条码扫描防错，消除混料风险');
-  const cfg=[['A','急迫改进',iA,'#fde8e8','#7b0d0d'],['B','重点改进',iB,'#fef3e2','#7a4200'],['C','计划中',iC,'#e8f8ee','#1a4a2e']];
-  return cfg.filter(([,,items])=>items.length).map(([k,label,items,bg,tc])=>`
-<div class="impr-group">
-  <div class="impr-hdr" style="background:${bg};color:${tc}">${k}级 ${label}</div>
-  <ul class="impr-list">${items.map(x=>`<li>${x}</li>`).join('')}</ul>
-</div>`).join('');
-}
-
-function buildInitBuiltin(stats,pa,gc){
-  const grade=getGrade(50+(stats.recognitionRate-50)*.5-(stats.pcTemplateCount/stats.n)*30-(stats.dcBad/stats.n)*20);
-  const score=Math.max(30,Math.min(85,50+(stats.recognitionRate-50)*.5-(stats.pcTemplateCount/stats.n)*30));
-  const issues=[];
-  if(stats.r1Bad>0)issues.push(`FC通用化：${stats.r1Bad}条未针对具体失效原因`);
-  if(stats.pcTemplateCount>0)issues.push(`PC模板化：${stats.pcTemplateCount}条占${Math.round(stats.pcTemplateCount/stats.n*100)}%`);
-  if(stats.dcBad>0)issues.push(`高D值低效DC：${stats.dcBad}条`);
-  const upgs=[
-    {from:'FC描述与FM不匹配，使用通用描述',to:'按FM类型分组编写专属FC，针对具体工序失效机理'},
-    {from:`${stats.nProc-pa.fullCoverage}个工序5M1E维度不完整`,to:'逐一补充缺失维度，确保每工序6维度全覆盖'}
-  ];
-  return`<div class="grade-circle" style="color:${gc};border-color:${gc}">${grade}</div>
-<div class="col-sub">综合评分 ${score}（规则引擎）</div>
-<p class="init-summary">共${stats.nProc}个工序${stats.n}条5M1E分析，PFMEA识别率${stats.recognitionRate}%（${pa.fullCoverage}/${pa.total}个工序完整覆盖6维度）。</p>
-${issues.length?`<div class="core-finding"><strong>核心问题</strong><br><ul style="padding-left:15px;margin-top:4px">${issues.map(i=>`<li>${i}</li>`).join('')}</ul></div>`:''}
-<div style="font-size:.7rem;color:#888;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">升级方向</div>
-${upgs.map(u=>`<div class="upg-row"><span class="upg-from">${u.from}</span><span class="upg-arrow">→</span><span class="upg-to">${u.to}</span></div>`).join('')}
-<div style="background:#f4f6fb;border-radius:6px;padding:10px;margin-top:10px">
-<div style="font-size:.7rem;color:#888;margin-bottom:6px">量化指标</div>
-${[['PFMEA识别率',stats.recognitionRate,'%',stats.recognitionRate>=80?'#27ae60':'#e67e22'],
-   ['PC模板化率',Math.round(stats.pcTemplateCount/stats.n*100),'%','#e74c3c'],
-   ['高D值低效DC',stats.dcBad,'条','#e74c3c']]
-  .map(([n,v,u,c])=>`<div style="margin-bottom:4px"><div style="display:flex;justify-content:space-between;font-size:.7rem"><span>${n}</span><span style="color:${c};font-weight:700">${v}${u}</span></div>${sbar(Math.min(100,v),c)}</div>`).join('')}
-</div>`;
-}
-
-function buildOptBuiltin(stats,igc,optGrade){
-  const score=Math.min(100,Math.max(30,50+(stats.recognitionRate-50)*.5+20));
-  return`<div class="grade-circle" style="color:${igc};border-color:${igc}">${optGrade}</div>
-<div class="col-sub">优化后评分 ${Math.round(score)}</div>
-<p class="init-summary">执行改进措施后，PFMEA识别率提升至≥90%，PC针对性大幅提高，DC升级为量化手段。</p>
-<div class="core-finding"><strong>核心要求</strong><br>FC→PC→DC三链对应，每条高风险FM必须有可验证的实物探测手段；PFMEA识别率≥90%，步骤6完成率100%</div>
-<div class="expected"><strong>预期改善：</strong>AP-H条目≤${Math.max(0,stats.apH-2)}条，高D值条目减少80%，各工序5M1E覆盖率达100%</div>`;
 }
 
 function dlReport(){
