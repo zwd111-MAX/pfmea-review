@@ -628,7 +628,13 @@ async function startReview(){
     setLoading(false);
     document.getElementById('uploadWrap').style.display='none';
     document.getElementById('reportWrap').style.display='flex';
-  }catch(err){setLoading(false);alert('处理失败：'+err.message);console.error(err)}
+  }catch(err){
+    setLoading(false);
+    const msg=err&&err.message?err.message:String(err);
+    const stack=err&&err.stack?'\n'+err.stack.split('\n').slice(0,3).join('\n'):'';
+    alert('处理失败：'+msg+stack);
+    console.error('处理失败 full error:',err);
+  }
 }
 
 // ══════════════════════════════════════════════════
