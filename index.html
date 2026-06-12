@@ -387,7 +387,155 @@ async function callClaude(apiKey,prompt){
 // ══════════════════════════════════════
 // 构建 Prompt（完整数据+强制具体引用）
 // ══════════════════════════════════════
-function buildPrompt(rows,stats,fname){
+function buildPrompt(rows,stats,fname,lib){
+  const procMap=stats.procMap;
+  lib=lib||[];
+
+  // ── lib 按 FM 关键词建索引（用于快速匹配）──
+  function findLibEntry(fm){
+    const fmClean=fm.replace(/[，。！？、\s\n]/g,'').slice(0,15);
+    return lib.find(e=>{
+      const ec=e.FM.replace(/[，。！？、\s]/g,'').slice(0,15);
+      if(fmClean.length>=4&&ec.includes(fmClean.slice(0,4)))return true;
+      if(ec.length>=4&&fmClean.includes(ec.slice(0,4)))return true;
+      return false;
+    });
+  }
+
+  // ── 全量工序数据（FM/FC + 匹配到的PC/DC）──
+  const procBlocks=[];
+  procMap.forEach((prows,pname)=>{
+    const ap=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
+    const dims=new Set();prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
+    const missDims=['人','机','料','法','环','测'].filter(d=>!dims.has(d));
+    const sorted=[...prows].sort((a,b)=>safeInt(b.S)-safeInt(a.S)||safeInt(b.D)-safeInt(a.D));
+    const details=sorted.slice(0,8).map(r=>{
+      const m5=r.M5E?`[${r.M5E.split(/[\n/]/)[0].slice(0,8)}]`:'';
+      // 从库中查找对应PC/DC
+      const libE=findLibEntry(r.FM);
+      const pcSrc=libE?`库PC:${libE.PC.slice(0,40)}`:(r.PC?`PFMEA-PC:${r.PC.slice(0,30)}`:'无PC');
+      const dcSrc=libE?`库DC:${libE.DC.slice(0,35)}`:(r.DC?`PFMEA-DC:${r.DC.slice(0,25)}`:'无DC');
+      return `  ${m5}FM:${r.FM.replace(/\n/g,'·').slice(0,35)} | FC:${r.FC.replace(/\n/g,'·').slice(0,35)}\n    S=${r.S} O=${r.O} D=${r.D} AP=${r.AP||'L'} | ${pcSrc} | ${dcSrc}`;
+    }).join('\n');
+    procBlocks.push(`【${pname}】AP-${ap} ${[...dims].join('')}/${6}维${missDims.length?' 缺['+missDims.join('')+']':''}\n${details}`);
+  });
+
+  // ── 无库PC/DC的高风险条目 ──
+  const noPCDC=rows.filter(r=>{
+    const e=findLibEntry(r.FM);
+    return !e||!e.PC||!e.DC;
+  }).filter(r=>safeInt(r.S)>=6||classAP(r.AP)!=='L')
+    .sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,10)
+    .map(r=>`  ${r.PROCESS} | FM:${r.FM.replace(/\n/g,'·').slice(0,25)} | S=${r.S}/D=${r.D} | 无库PC/DC`).join('\n');
+
+  // ── 高风险条目 ──
+  const hiRisk=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L')
+    .sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,12)
+    .map(r=>{
+      const e=findLibEntry(r.FM);
+      const hasPC=e&&e.PC&&e.PC.length>5;
+      const hasDC=e&&e.DC&&e.DC.length>5;
+      return `  ${r.PROCESS} | ${r.FM.replace(/\n/g,'·').slice(0,22)} | S=${r.S}/O=${r.O}/D=${r.D} | PC:${hasPC?'有':'缺'} DC:${hasDC?'有':'缺'}`;
+    }).join('\n');
+
+  // ── 模板化PC（来自PFMEA自带PC列）──
+  const tplRows=rows.filter(r=>TEMPLATES.filter(t=>r.PC&&r.PC.includes(t)).length>=2).slice(0,3);
+  const tplEx=tplRows.map(r=>`  ${r.PROCESS}: PFMEA原PC="${(r.PC||'').slice(0,50)}"`).join('\n');
+
+  // ── 库中PC/DC统计 ──
+  const libPCOK=lib.filter(e=>e.PC&&e.PC.length>10).length;
+  const libDCOK=lib.filter(e=>e.DC&&e.DC.length>10).length;
+  const libTotal=lib.length;
+
+  const sFreq={},dFreq={};
+  rows.forEach(r=>{sFreq[r.S]=(sFreq[r.S]||0)+1;dFreq[r.D]=(dFreq[r.D]||0)+1;});
+  const topS=Object.entries(sFreq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`S${k}:${v}条`).join(', ');
+  const topD=Object.entries(dFreq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`D${k}:${v}条`).join(', ');
+
+  return `你是资深AIAG-VDA PFMEA评审专家（机器人制造15年），精通减速机/轴承/导轨/线束/传感器/润滑脂/装配精度等工艺失效模式。
+
+## 评审说明
+- **FM/FC/S/O/D/AP** 来自 PFMEA 文件（当前失效分析）
+- **PC/DC** 来自《失效模式输入》知识库（工序类型分类）
+- 评审目标：分析PFMEA中的FM/FC与知识库PC/DC的对应关系，识别PC/DC缺失或不足的高风险工序
+
+## 文件：${fname}
+工序：${stats.nProc}个 | 5M1E条目：${stats.n}条 | AP: H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
+S值分布：${topS} | D值分布：${topD}
+知识库：${libTotal}条FM条目，PC填写${libPCOK}条(${Math.round(libPCOK/Math.max(1,libTotal)*100)}%)，DC填写${libDCOK}条(${Math.round(libDCOK/Math.max(1,libTotal)*100)}%)
+
+## 高风险条目（含PC/DC来源状态）
+${hiRisk||'  无高风险条目'}
+
+## 无库PC/DC的高风险条目（最需要关注）
+${noPCDC||'  无'}
+
+## PFMEA原生PC模板化示例
+${tplEx||'  无明显模板化'}
+
+## 各工序完整数据（FM/FC来自PFMEA，PC/DC来自知识库）
+${procBlocks.join('\n\n')}
+
+---
+## 评审要求（严格遵守）
+
+**核心：基于FM/FC（PFMEA）和PC/DC（知识库）的联动评审**
+
+1. **评估FC质量** — FC是否针对FM的真实根因（人/机/料/法/环/测各维度），还是通用描述
+2. **评估PC/DC充分性** — 知识库中的PC是否能有效预防FC描述的原因，DC是否能检出对应的FM
+3. **识别FC-PC-DC链路断裂** — FM有FC，但PC/DC缺失或不针对该FC
+4. **每条分析必须引用具体工序名+FM文本+S/O/D数值**
+
+**格式要求（严格）：**
+- weaknesses每条：工序名(S=x/O=x/D=x) + FM内容 + FC问题 + PC/DC问题
+- improvements每条：工序名 + 当前FC→建议FC改写 + 建议PC → 建议DC
+- libGaps：该工序在行业中通常还需识别的FM（当前遗漏的）
+
+## 输出（纯JSON，直接以{开头）
+{
+  "initGrade":"等级","initScore":分数,"optGrade":"优化后等级","optScore":优化后分数,
+  "initSummary":"2-3句，引用具体工序名/FM/S/O/D数值",
+  "coreFindings":"核心问题（150字内），FC-PC-DC链路分析，引用3-5个工序名",
+  "upgradeDirections":[
+    {"from":"具体工序名（S=x/O=x/D=x）的FC/PC/DC现状","to":"具体改进目标"},
+    {"from":"...","to":"..."},{"from":"...","to":"..."},{"from":"...","to":"..."}
+  ],
+  "priorityActions":[
+    {"label":"≤4字标签","color":"#颜色","text":"工序名+FM+当前问题+具体操作+预期D值变化（100字内）"},
+    {"label":"...","color":"...","text":"..."},{"label":"...","color":"...","text":"..."}
+  ],
+  "expectedChange":"执行后：AP-H从X降至Y，平均D值从X降至Y，FC-PC-DC覆盖率从X%升至Y%",
+  "strengths":[
+    {"tag":"优点","detail":"引用数据（工序数/条目数/覆盖率）"},
+    {"tag":"...","detail":"..."},{"tag":"...","detail":"..."},
+    {"tag":"...","detail":"..."},{"tag":"...","detail":"..."}
+  ],
+  "weaknesses":[
+    {"level":"高","title":"工序名FC-PC断链","detail":"工序名(S=x/O=x/D=x)：FM是'xxx'，FC是'xxx'，但库PC是'xxx'或缺失，PC与FC无因果关系"},
+    {"level":"高","title":"...","detail":"..."},{"level":"高","title":"...","detail":"..."},
+    {"level":"高","title":"...","detail":"..."},{"level":"中","title":"...","detail":"..."},
+    {"level":"中","title":"...","detail":"..."},{"level":"中","title":"...","detail":"..."},
+    {"level":"中","title":"...","detail":"..."}
+  ],
+  "improvements":{
+    "A":["工序名：当前FC='xxx'→建议改为'具体根因描述'；对应PC='xxx'→'具体防止手段'；DC='xxx'→'量化检测方法'","...","...","..."],
+    "B":["...","...","...","...","..."],
+    "C":["...","...","...","..."]
+  },
+  "optSummary":"优化后：FC-PC-DC三链完整，D值降至X，AP-H清零（2句含数字）",
+  "coreRequirements":"核心要求（3-4条，每条含量化目标）",
+  "procDetails":[
+    {
+      "name":"工序名",
+      "fmCoverage":覆盖率0-100,
+      "lawFMs":["当前法维度FM1","FM2","FM3"],
+      "libGaps":["【行业通常还需识别】具体FM+为何重要","【遗漏FM】...","【遗漏FM】..."],
+      "suggestions":["当前FC/PC/DC问题→具体改进操作→预期效果","...","..."]
+    }
+  ]
+}
+注意：procDetails包含全部${procMap.size}个工序。`;
+}
   const procMap=stats.procMap;
 
   // ── 全量工序数据（FM/FC/S/O/D原文）──
@@ -541,7 +689,7 @@ async function startReview(){
     if(apiKey){
       setLoading(true,'正在调用 Claude AI 深度评审（约20-40秒）...',60);
       try{
-        const prompt=buildPrompt(pfmea.rows,stats,files[1].name);
+        const prompt=buildPrompt(pfmea.rows,stats,files[1].name,lib);
         const raw=await callClaude(apiKey,prompt);
         const m=raw.match(/```json\s*([\s\S]*?)\s*```/);
         let js=m?m[1]:raw;
