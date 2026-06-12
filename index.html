@@ -204,7 +204,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <input class="ai-inp" id="apiBase" type="text" value="https://aigw.gino.plus" style="margin-top:6px;font-size:11px;color:#666">
       </div>
     </div>
-    <button class="btn-start" id="btnStart" disabled onclick="startReview()">请先上传 PFMEA 文件</button>
+    <button class="btn-start" id="btnStart" onclick="startReview()">请先上传 PFMEA 文件</button>
     <p class="hint-xs">⚡ 文件本地处理，不上传服务器</p>
   </div>
   <div class="load-wrap" id="loadWrap">
@@ -305,8 +305,13 @@ if(btnStart)btnStart.addEventListener('click',startReview);
 function updBtn(){
   var b=document.getElementById('btnStart');
   if(!b)return;
-  if(files[1]){b.disabled=false;b.textContent='🚀 开始 AI 评审';}
-  else{b.disabled=true;b.textContent='请先上传 PFMEA 文件';}
+  if(files[1]){
+    b.textContent='🚀 开始 AI 评审';
+    b.style.background='#1a3a6b';
+  }else{
+    b.textContent='请先上传 PFMEA 文件';
+    b.style.background='#b0c4de';
+  }
 }
 function toggleAI(){
   document.getElementById('aiBlock').style.display=document.getElementById('aiOn').checked?'':'none';
@@ -619,7 +624,8 @@ ${kb?'\n## 公司工艺设计准则经验库（已上传）\n结合以下经验�
 // ══════════════════════════════════════
 let lastEv=null;
 async function startReview(){
-  console.log('startReview called, files[1]=',files[1]);
+  if(!files[1]){alert('请先上传 PFMEA 文件（.xlsx）');return;}
+  console.log('startReview: file=',files[1].name);
   const aiOn=document.getElementById('aiOn').checked;
   const apiKey=aiOn?document.getElementById('apiKey').value.trim():'';
   setLoading(true,'正在读取 PFMEA 文件...',10);
