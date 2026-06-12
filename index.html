@@ -161,7 +161,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <div class="dz-hint" style="margin-bottom:8px">FM/FC/S/O/D/AP · xlsx格式</div>
         <input type="file" id="fi1" accept=".xlsx,.xls"
           style="display:block;width:100%;cursor:pointer;font-size:12px"
-          onchange="handleFile(1,this)">
+          onchange="files[1]=this.files[0];var b=document.getElementById('btnStart');if(b&&files[1]){b.textContent='🚀 开始 AI 评审';b.style.background='#1a3a6b';}var f=document.getElementById('dz1f');if(f&&files[1]){f.textContent='✓ '+files[1].name;f.style.display='block';}">
         <div class="dz-file" id="dz1f" style="margin-top:6px;font-size:11px;color:#27ae60;display:none"></div>
       </div>
       <div class="dz" id="dz2">
@@ -170,7 +170,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <div class="dz-hint" style="margin-bottom:8px">PC/DC 知识库 · xlsx格式</div>
         <input type="file" id="fi2" accept=".xlsx,.xls"
           style="display:block;width:100%;cursor:pointer;font-size:12px"
-          onchange="handleFile(2,this)">
+          onchange="files[2]=this.files[0];var f=document.getElementById('dz2f');if(f&&files[2]){f.textContent='✓ '+files[2].name;f.style.display='block';}">
         <div class="dz-file" id="dz2f" style="margin-top:6px;font-size:11px;color:#27ae60;display:none"></div>
       </div>
     </div>
@@ -272,7 +272,7 @@ async function autoLoadKB(){
 // 页面加载后自动拉取
 window.addEventListener('DOMContentLoaded', autoLoadKB);
 
-const files={1:null,2:null,3:null};
+var files={1:null,2:null,3:null};
 
 // 文件处理（onchange直接调用，最简单可靠）
 function handleFile(n,input){
