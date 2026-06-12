@@ -270,7 +270,6 @@ function parsePfmea(wb){
     IMP_PC:['预防措施','改进预防'],IMP_DC:['探测措施','改进探测'],
     PROCESS:['过程步骤','功能和产品','过程项'],M5E:['5M1E','工作要素']};
   // AP优先用更新后AP列（col30 for P40格式）
-  const AP_PATS=['PFMEA AP','优先','AP'];
   const DEF={FM:10,FC:11,PC:12,DC:14,S:9,O:13,D:17,AP:18,IMP_PC:20,IMP_DC:21,PROCESS:1,M5E:4};
   const col={};
   for(const[k,pts]of Object.entries(PATS)){col[k]=DEF[k];for(let c=0;c<hr.length;c++){if(pts.some(p=>String(hr[c]||'').includes(p))){col[k]=c;break}}}
@@ -292,9 +291,10 @@ function parsePfmea(wb){
       AP:String(row[col.AP]||'').trim(),IMP_PC:String(row[col.IMP_PC]||'').trim(),
       IMP_DC:String(row[col.IMP_DC]||'').trim(),PROCESS:proc,M5E:m5e});
   }
-  // 分析数量：只计有FM+FC的有效行（剔除空行），上限不超过实际FM数
+  // 分析数量：只计有FM+FC的有效行（剔除空行）
   const validRows=rows.filter(r=>r.FM&&r.FC);
-  return{rows:validRows,nProc:procNamesSet.size||procs.size||1,sheetName:sh};
+  const nProcFinal=new Set(validRows.map(r=>r.PROCESS).filter(Boolean)).size||procs.size||1;
+  return{rows:validRows,nProc:nProcFinal,sheetName:sh};
 }
 
 function parseLibrary(wb){
