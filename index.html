@@ -155,29 +155,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 
     <div class="drop-grid">
       <div class="dz" id="dz1">
-        <input type="file" id="fi1" accept=".xlsx,.xls"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
         <div class="dz-icon">📋</div>
         <div class="dz-title">① PFMEA 文件</div>
         <div class="dz-hint">FM/FC/S/O/D/AP<br>如：X1200窄版PFMEA合.xlsx</div>
         <div class="dz-file" id="dz1f"></div>
-        <span class="dz-x" id="dz1x" style="z-index:10">✕</span>
+        <span class="dz-x" id="dz1x">✕</span>
       </div>
       <div class="dz" id="dz2">
-        <input type="file" id="fi2" accept=".xlsx,.xls"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
         <div class="dz-icon">📚</div>
         <div class="dz-title">② 失效模式库（可选）</div>
         <div class="dz-hint">PC/DC 知识库<br>工序类型分类 sheet</div>
         <div class="dz-file" id="dz2f"></div>
-        <span class="dz-x" id="dz2x" style="z-index:10">✕</span>
+        <span class="dz-x" id="dz2x">✕</span>
       </div>
     </div>
 
-    <!-- ③ 经验库：正常自动加载，仅更新时手动上传覆盖 -->
+    <!-- 经验库：正常自动加载，仅更新时手动上传覆盖 -->
     <div class="dz" id="dz3" style="margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:12px;padding:10px 16px">
-      <input type="file" id="fi3" accept=".json,.xlsx,.xls"
-        style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
       <div style="font-size:20px;flex-shrink:0">🔄</div>
       <div style="flex:1">
         <div class="dz-title" style="font-size:12px">③ 经验库更新（正常情况无需操作）</div>
@@ -185,6 +179,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <div class="dz-file" id="dz3f" style="margin-top:2px"></div>
       </div>
     </div>
+    <!-- file inputs: off-screen, NOT opacity:0 (ensures change event fires in all browsers) -->
+    <input type="file" id="fi1" accept=".xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
+    <input type="file" id="fi2" accept=".xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
+    <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
 
     <div class="api-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -202,7 +200,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <input class="ai-inp" id="apiBase" type="text" value="https://aigw.gino.plus" style="margin-top:6px;font-size:11px;color:#666">
       </div>
     </div>
-    <button class="btn-start" id="btnStart" disabled onclick="startReview()">请先上传 PFMEA 文件</button>
+    <button class="btn-start" id="btnStart" disabled>请先上传 PFMEA 文件</button>
     <p class="hint-xs">⚡ 文件本地处理，不上传服务器</p>
   </div>
   <div class="load-wrap" id="loadWrap">
@@ -271,21 +269,31 @@ async function autoLoadKB(){
 window.addEventListener('DOMContentLoaded', autoLoadKB);
 
 const files={1:null,2:null,3:null};
-// label 原生处理 click；这里只注册拖拽、change、✕按钮
+// 所有事件均通过 addEventListener 注册，避免 inline onclick 被 CSP 拦截
 [1,2,3].forEach(n=>{
   const d=document.getElementById('dz'+n);
   const fi=document.getElementById('fi'+n);
   const dx=document.getElementById('dz'+n+'x');
   if(!d||!fi)return;
+  // 点击 dz 区域 → 显式触发 file input（fi 在视口外，change 事件可靠触发）
+  d.addEventListener('click',function(e){
+    if(dx&&dx.contains(e.target))return; // ✕ 按钮不触发文件选择
+    fi.click();
+  });
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
   d.addEventListener('dragleave',()=>d.classList.remove('over'));
   d.addEventListener('drop',e=>{
     e.preventDefault();d.classList.remove('over');
-    if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0])
+    if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0]);
   });
-  fi.addEventListener('change',e=>{if(e.target.files[0])setF(n,e.target.files[0])});
-  if(dx)dx.addEventListener('click',e=>{e.stopPropagation();clearF(n,e)});
+  fi.addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];
+    if(f)setF(n,f);
+  });
+  if(dx)dx.addEventListener('click',function(e){e.stopPropagation();clearF(n);});
 });
+// 开始评审按钮
+document.getElementById('btnStart').addEventListener('click',startReview);
 function setF(n,f){
   files[n]=f;
   const fe=document.getElementById('dz'+n+'f');fe.textContent='✓ '+f.name;fe.style.display='block';
@@ -293,8 +301,7 @@ function setF(n,f){
   document.getElementById('dz'+n).classList.add('ready');
   updBtn();
 }
-function clearF(n,e){
-  if(e){e.stopPropagation();}
+function clearF(n){
   files[n]=null;
   const fe=document.getElementById('dz'+n+'f');if(fe)fe.style.display='none';
   const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='none';
