@@ -146,24 +146,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
     <div style="font-size:34px">📊</div>
     <h1>PFMEA AI 评审工具</h1>
     <p class="sub">基于 AIAG-VDA 标准 · 失效模式覆盖完整性分析 · 工艺设计准则经验库 · AI深度评审</p>
+    <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none">
+    <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none">
+    <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="display:none">
     <div class="drop-grid">
-      <div class="dz" id="dz1">
+      <label for="fi1" class="dz" id="dz1">
         <div class="dz-icon">📋</div>
         <div class="dz-title">① PFMEA 文件</div>
         <div class="dz-hint">FM/FC/S/O/D/AP<br>如：X1200窄版PFMEA合.xlsx</div>
         <div class="dz-file" id="dz1f"></div>
         <span class="dz-x" id="dz1x" onclick="clearF(1,event)">✕</span>
-      </div>
-      <div class="dz" id="dz2">
+      </label>
+      <label for="fi2" class="dz" id="dz2">
         <div class="dz-icon">📚</div>
         <div class="dz-title">② 失效模式库（可选）</div>
         <div class="dz-hint">PC/DC 知识库<br>工序类型分类 sheet</div>
         <div class="dz-file" id="dz2f"></div>
         <span class="dz-x" id="dz2x" onclick="clearF(2,event)">✕</span>
-      </div>
+      </label>
     </div>
-    <!-- 知识库上传（独立一行） -->
-    <div class="dz" id="dz3" style="margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:12px;padding:12px 16px">
+    <label for="fi3" class="dz" id="dz3" style="margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:12px;padding:12px 16px">
       <div style="font-size:22px;flex-shrink:0">🗄️</div>
       <div style="flex:1">
         <div class="dz-title">③ 工艺设计准则 经验库（可选）</div>
@@ -171,10 +173,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         <div class="dz-file" id="dz3f" style="margin-top:3px"></div>
       </div>
       <span class="dz-x" id="dz3x" onclick="clearF(3,event)" style="position:static">✕</span>
-    </div>
-    <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none">
-    <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none">
-    <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="display:none">
+    </label>
 
     <div class="api-box">
       <label>🤖 Claude AI 分析
@@ -235,12 +234,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
 // 文件管理
 // ══════════════════════════════════════
 const files={1:null,2:null,3:null};
-// 注册拖拽、点击、change 事件（用 addEventListener 替代 onclick 属性，避免 CSP 问题）
+// label[for] 原生处理 click；这里只注册拖拽和 change
 [1,2,3].forEach(n=>{
   const d=document.getElementById('dz'+n);
   const fi=document.getElementById('fi'+n);
   if(!d||!fi)return;
-  d.addEventListener('click',e=>{if(e.target.closest('.dz-x'))return;fi.click()});
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
   d.addEventListener('dragleave',()=>d.classList.remove('over'));
   d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0])});
@@ -254,7 +252,8 @@ function setF(n,f){
   updBtn();
 }
 function clearF(n,e){
-  e.stopPropagation();files[n]=null;
+  e.stopPropagation();e.preventDefault();
+  files[n]=null;
   const fe=document.getElementById('dz'+n+'f');if(fe)fe.style.display='none';
   const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='none';
   document.getElementById('dz'+n).classList.remove('ready');
