@@ -153,51 +153,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
       <span style="float:right;cursor:pointer;color:#888" onclick="document.getElementById('kbStatus').style.display='none'">✕</span>
     </div>
 
-    <!-- ══ 上传区（button触发方案，全浏览器兼容）══ -->
+    <!-- ══ 上传区：原生可见 input，无隐藏，无JS依赖 ══ -->
     <div class="drop-grid">
-      <!-- ① PFMEA -->
       <div class="dz" id="dz1">
         <div class="dz-icon">📋</div>
         <div class="dz-title">① PFMEA 文件</div>
-        <div class="dz-hint">FM/FC/S/O/D/AP<br>如：X1200窄版PFMEA合.xlsx</div>
-        <div class="dz-file" id="dz1f" style="margin:4px 0;font-size:11px;color:#27ae60;display:none"></div>
-        <button type="button" id="btn1"
-          style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
-          选择文件
-        </button>
+        <div class="dz-hint" style="margin-bottom:8px">FM/FC/S/O/D/AP · xlsx格式</div>
         <input type="file" id="fi1" accept=".xlsx,.xls"
-          style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
+          style="display:block;width:100%;cursor:pointer;font-size:12px"
           onchange="handleFile(1,this)">
+        <div class="dz-file" id="dz1f" style="margin-top:6px;font-size:11px;color:#27ae60;display:none"></div>
       </div>
-      <!-- ② 失效模式库 -->
       <div class="dz" id="dz2">
         <div class="dz-icon">📚</div>
         <div class="dz-title">② 失效模式库（可选）</div>
-        <div class="dz-hint">PC/DC 知识库<br>工序类型分类 sheet</div>
-        <div class="dz-file" id="dz2f" style="margin:4px 0;font-size:11px;color:#27ae60;display:none"></div>
-        <button type="button" id="btn2"
-          style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
-          选择文件
-        </button>
+        <div class="dz-hint" style="margin-bottom:8px">PC/DC 知识库 · xlsx格式</div>
         <input type="file" id="fi2" accept=".xlsx,.xls"
-          style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
+          style="display:block;width:100%;cursor:pointer;font-size:12px"
           onchange="handleFile(2,this)">
+        <div class="dz-file" id="dz2f" style="margin-top:6px;font-size:11px;color:#27ae60;display:none"></div>
       </div>
     </div>
-    <!-- ③ 经验库（自动加载，仅更新时使用） -->
+    <!-- ③ 经验库自动加载 -->
     <div style="background:#f0f8ff;border:1px dashed #90c0e0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#2c5a8a;display:flex;align-items:center;gap:10px">
       <span style="font-size:18px">🔄</span>
       <div style="flex:1">
-        <b>工艺设计准则经验库</b> — 已从服务器自动加载，无需操作
+        <b>工艺设计准则经验库</b> — 已从服务器自动加载
         <div id="dz3f" style="font-size:11px;color:#27ae60;margin-top:2px"></div>
       </div>
-      <button type="button" id="btn3"
-        style="padding:4px 12px;background:#e0eefc;color:#1a2e5a;border:1px solid #a0c8e8;border-radius:6px;cursor:pointer;font-size:11px;white-space:nowrap">
-        更新经验库
-      </button>
-      <input type="file" id="fi3" accept=".json,.xlsx,.xls"
-        style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
-        onchange="handleFile(3,this)">
+      <div>
+        <input type="file" id="fi3" accept=".json,.xlsx,.xls"
+          style="font-size:11px;cursor:pointer"
+          onchange="handleFile(3,this)">
+      </div>
     </div>
 
     <div class="api-box">
@@ -286,7 +274,7 @@ window.addEventListener('DOMContentLoaded', autoLoadKB);
 
 const files={1:null,2:null,3:null};
 
-// 文件处理（inline onchange 调用此函数，最可靠）
+// 文件处理（onchange直接调用，最简单可靠）
 function handleFile(n,input){
   var f=input&&input.files&&input.files[0];
   if(!f)return;
@@ -298,17 +286,7 @@ function handleFile(n,input){
   updBtn();
 }
 
-// button → file input
-document.addEventListener('DOMContentLoaded',function(){
-  [1,2,3].forEach(function(n){
-    var btn=document.getElementById('btn'+n);
-    var fi=document.getElementById('fi'+n);
-    if(btn&&fi)btn.addEventListener('click',function(){fi.click();});
-  });
-  document.getElementById('btnStart').addEventListener('click',startReview);
-});
-
-// 拖拽支持
+// 拖拽（不依赖按钮，直接绑在dz元素上）
 [1,2].forEach(function(n){
   var d=document.getElementById('dz'+n);
   if(!d)return;
@@ -316,9 +294,14 @@ document.addEventListener('DOMContentLoaded',function(){
   d.addEventListener('dragleave',function(){d.classList.remove('over');});
   d.addEventListener('drop',function(e){
     e.preventDefault();d.classList.remove('over');
-    if(e.dataTransfer.files[0])handleFile(n,{files:e.dataTransfer.files});
+    var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(f)handleFile(n,{files:[f]});
   });
 });
+
+// 开始按钮（直接绑定，不用DOMContentLoaded）
+var btnStart=document.getElementById('btnStart');
+if(btnStart)btnStart.addEventListener('click',startReview);
 function updBtn(){
   var b=document.getElementById('btnStart');
   if(files[1]){b.disabled=false;b.textContent='🚀 开始 AI 评审';}
