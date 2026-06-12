@@ -625,6 +625,7 @@ ${procLines.join('\n')}
 }
 \`\`\`
 注意：procDetails必须包含全部${procMap.size}个工序。libGaps是基于行业知识的FM完整性缺口，不是当前PFMEA的技术错误。每个工序至少2条libGaps。
+**重要：直接输出JSON，不要任何前言或解释文字，不要markdown代码块，直接以{开头以}结尾。**
 ${kb?'\n## 公司工艺设计准则经验库（已上传）\n结合以下经验库数据，识别更精准的行业缺口：\n'+buildKBContext(kb,procNames):''}`;
 }
 }
@@ -659,8 +660,10 @@ async function startReview(){
       try{
         const prompt=buildPrompt(pfmea.rows,stats,files[1].name,kb);
         const raw=await callClaude(apiKey,prompt);
+        // 支持纯JSON和```json代码块两种返回格式
         const m=raw.match(/```json\s*([\s\S]*?)\s*```/);
-        aiResult=JSON.parse(m?m[1]:raw);
+        const jsonStr=m?m[1]:raw.trim().replace(/^[^{]*/,'').replace(/[^}]*$/,'');
+        aiResult=JSON.parse(jsonStr);
         setLoading(true,'AI评审完成，正在生成报告...',90);
       }catch(e){
         console.warn('AI分析失败，切换规则引擎：',e.message);
