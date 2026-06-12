@@ -153,36 +153,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
       <span style="float:right;cursor:pointer;color:#888" onclick="document.getElementById('kbStatus').style.display='none'">✕</span>
     </div>
 
+    <!-- ══ 上传区（button触发方案，全浏览器兼容）══ -->
     <div class="drop-grid">
+      <!-- ① PFMEA -->
       <div class="dz" id="dz1">
         <div class="dz-icon">📋</div>
         <div class="dz-title">① PFMEA 文件</div>
         <div class="dz-hint">FM/FC/S/O/D/AP<br>如：X1200窄版PFMEA合.xlsx</div>
-        <div class="dz-file" id="dz1f"></div>
-        <span class="dz-x" id="dz1x">✕</span>
+        <div class="dz-file" id="dz1f" style="margin:4px 0;font-size:11px;color:#27ae60;display:none"></div>
+        <button type="button" id="btn1"
+          style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
+          选择文件
+        </button>
+        <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none"
+          onchange="handleFile(1,this)">
       </div>
+      <!-- ② 失效模式库 -->
       <div class="dz" id="dz2">
         <div class="dz-icon">📚</div>
         <div class="dz-title">② 失效模式库（可选）</div>
         <div class="dz-hint">PC/DC 知识库<br>工序类型分类 sheet</div>
-        <div class="dz-file" id="dz2f"></div>
-        <span class="dz-x" id="dz2x">✕</span>
+        <div class="dz-file" id="dz2f" style="margin:4px 0;font-size:11px;color:#27ae60;display:none"></div>
+        <button type="button" id="btn2"
+          style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
+          选择文件
+        </button>
+        <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none"
+          onchange="handleFile(2,this)">
       </div>
     </div>
-
-    <!-- 经验库：正常自动加载，仅更新时手动上传覆盖 -->
-    <div class="dz" id="dz3" style="margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:12px;padding:10px 16px">
-      <div style="font-size:20px;flex-shrink:0">🔄</div>
+    <!-- ③ 经验库（自动加载，仅更新时使用） -->
+    <div style="background:#f0f8ff;border:1px dashed #90c0e0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#2c5a8a;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🔄</span>
       <div style="flex:1">
-        <div class="dz-title" style="font-size:12px">③ 经验库更新（正常情况无需操作）</div>
-        <div class="dz-hint" style="margin-top:1px">经验库已从服务器自动加载 · 仅在更新 kb_data.json 时点击此处上传覆盖</div>
-        <div class="dz-file" id="dz3f" style="margin-top:2px"></div>
+        <b>工艺设计准则经验库</b> — 已从服务器自动加载，无需操作
+        <div id="dz3f" style="font-size:11px;color:#27ae60;margin-top:2px"></div>
       </div>
+      <button type="button" id="btn3"
+        style="padding:4px 12px;background:#e0eefc;color:#1a2e5a;border:1px solid #a0c8e8;border-radius:6px;cursor:pointer;font-size:11px;white-space:nowrap">
+        更新经验库
+      </button>
+      <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="display:none"
+        onchange="handleFile(3,this)">
     </div>
-    <!-- file inputs: off-screen, NOT opacity:0 (ensures change event fires in all browsers) -->
-    <input type="file" id="fi1" accept=".xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
-    <input type="file" id="fi2" accept=".xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
-    <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px">
 
     <div class="api-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -269,49 +282,44 @@ async function autoLoadKB(){
 window.addEventListener('DOMContentLoaded', autoLoadKB);
 
 const files={1:null,2:null,3:null};
-// 所有事件均通过 addEventListener 注册，避免 inline onclick 被 CSP 拦截
-[1,2,3].forEach(n=>{
-  const d=document.getElementById('dz'+n);
-  const fi=document.getElementById('fi'+n);
-  const dx=document.getElementById('dz'+n+'x');
-  if(!d||!fi)return;
-  // 点击 dz 区域 → 显式触发 file input（fi 在视口外，change 事件可靠触发）
-  d.addEventListener('click',function(e){
-    if(dx&&dx.contains(e.target))return; // ✕ 按钮不触发文件选择
-    fi.click();
-  });
-  d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
-  d.addEventListener('dragleave',()=>d.classList.remove('over'));
-  d.addEventListener('drop',e=>{
-    e.preventDefault();d.classList.remove('over');
-    if(e.dataTransfer.files[0])setF(n,e.dataTransfer.files[0]);
-  });
-  fi.addEventListener('change',function(e){
-    var f=e.target.files&&e.target.files[0];
-    if(f)setF(n,f);
-  });
-  if(dx)dx.addEventListener('click',function(e){e.stopPropagation();clearF(n);});
-});
-// 开始评审按钮
-document.getElementById('btnStart').addEventListener('click',startReview);
-function setF(n,f){
+
+// 文件处理（inline onchange 调用此函数，最可靠）
+function handleFile(n,input){
+  var f=input&&input.files&&input.files[0];
+  if(!f)return;
   files[n]=f;
-  const fe=document.getElementById('dz'+n+'f');fe.textContent='✓ '+f.name;fe.style.display='block';
-  const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='block';
-  document.getElementById('dz'+n).classList.add('ready');
+  var fe=document.getElementById('dz'+n+'f');
+  if(fe){fe.textContent='✓ '+f.name;fe.style.display='block';}
+  var dz=document.getElementById('dz'+n);
+  if(dz)dz.classList.add('ready');
   updBtn();
 }
-function clearF(n){
-  files[n]=null;
-  const fe=document.getElementById('dz'+n+'f');if(fe)fe.style.display='none';
-  const dx=document.getElementById('dz'+n+'x');if(dx)dx.style.display='none';
-  document.getElementById('dz'+n).classList.remove('ready');
-  document.getElementById('fi'+n).value='';updBtn();
-}
+
+// button → file input
+document.addEventListener('DOMContentLoaded',function(){
+  [1,2,3].forEach(function(n){
+    var btn=document.getElementById('btn'+n);
+    var fi=document.getElementById('fi'+n);
+    if(btn&&fi)btn.addEventListener('click',function(){fi.click();});
+  });
+  document.getElementById('btnStart').addEventListener('click',startReview);
+});
+
+// 拖拽支持
+[1,2].forEach(function(n){
+  var d=document.getElementById('dz'+n);
+  if(!d)return;
+  d.addEventListener('dragover',function(e){e.preventDefault();d.classList.add('over');});
+  d.addEventListener('dragleave',function(){d.classList.remove('over');});
+  d.addEventListener('drop',function(e){
+    e.preventDefault();d.classList.remove('over');
+    if(e.dataTransfer.files[0])handleFile(n,{files:e.dataTransfer.files});
+  });
+});
 function updBtn(){
-  const b=document.getElementById('btnStart');
-  if(files[1]){b.disabled=false;b.textContent='🚀 开始 AI 评审'}
-  else{b.disabled=true;b.textContent='请先上传 PFMEA 文件'}
+  var b=document.getElementById('btnStart');
+  if(files[1]){b.disabled=false;b.textContent='🚀 开始 AI 评审';}
+  else{b.disabled=true;b.textContent='请先上传 PFMEA 文件';}
 }
 function toggleAI(){
   document.getElementById('aiBlock').style.display=document.getElementById('aiOn').checked?'':'none';
