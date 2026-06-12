@@ -384,83 +384,105 @@ async function callClaude(apiKey,prompt){
 }
 
 // ══════════════════════════════════════
-// 构建 Prompt（核心：FM覆盖完整性分析）
+// ══════════════════════════════════════
+// 构建 Prompt（完整数据+强制具体引用）
 // ══════════════════════════════════════
 function buildPrompt(rows,stats,fname){
   const procMap=stats.procMap;
-  // 每工序详细数据
-  const procLines=[];
+
+  // ── 全量工序数据（FM/FC/S/O/D原文）──
+  const procBlocks=[];
   procMap.forEach((prows,pname)=>{
-    const dims=new Set();prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
     const ap=prows.some(r=>classAP(r.AP)==='H')?'H':prows.some(r=>classAP(r.AP)==='M')?'M':'L';
-    // 按维度收集FM
-    const byDim={};
-    prows.forEach(r=>{
-      const ds=getDimsFromM5E(r.M5E);
-      ds.forEach(d=>{if(!byDim[d])byDim[d]=[];byDim[d].push(r.FM.replace(/\n/g,'·').slice(0,40))});
-    });
-    const fmSummary=Object.entries(byDim).map(([d,fms])=>`${d}:[${[...new Set(fms)].join('/')}]`).join(' ');
-    const highRisk=prows.filter(r=>safeInt(r.S)>=7||safeInt(r.D)>=6).map(r=>`${r.FM.slice(0,20)}(S=${r.S}/O=${r.O}/D=${r.D})`).join(',');
-    procLines.push(`工序"${pname}" AP-${ap} 覆盖[${[...dims].join('')}]/${6}维 FM摘要:${fmSummary}${highRisk?' 高风险:'+highRisk:''}`);
+    const dims=new Set();prows.forEach(r=>getDimsFromM5E(r.M5E).forEach(d=>dims.add(d)));
+    const missDims=['人','机','料','法','环','测'].filter(d=>!dims.has(d));
+    // 按S值排序，取最高风险的6条
+    const sorted=[...prows].sort((a,b)=>safeInt(b.S)-safeInt(a.S)||safeInt(b.D)-safeInt(a.D));
+    const details=sorted.slice(0,6).map(r=>{
+      const m5=r.M5E?`[${r.M5E.split(/[\n/]/)[0].slice(0,8)}]`:'';
+      const pc=r.PC?` PC:${r.PC.slice(0,30)}`:'';
+      return `  ${m5}FM:${r.FM.replace(/\n/g,'·').slice(0,35)} FC:${r.FC.replace(/\n/g,'·').slice(0,35)} S=${r.S} O=${r.O} D=${r.D}${pc}`;
+    }).join('\n');
+    procBlocks.push(`【${pname}】AP-${ap} ${[...dims].join('')}/${6}维 ${missDims.length?'缺['+missDims.join('')+']':''}\n${details}`);
   });
-  const highRiskAll=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L').sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,12).map(r=>`${r.PROCESS}/${r.FM.slice(0,20)}(S=${r.S}/O=${r.O}/D=${r.D})`).join('\n  ');
-  const tplEx=rows.filter(r=>TEMPLATES.filter(t=>r.PC.includes(t)).length>=2).slice(0,2).map(r=>`  ${r.PROCESS}: PC="${r.PC.slice(0,50)}..."`).join('\n');
 
-  return `你是资深AIAG-VDA PFMEA评审专家（机器人制造15年），精通减速机/轴承/导轨/线束/传感器/润滑/装配等工艺失效模式。
+  // ── 高风险条目（精确引用）──
+  const hiRisk=rows.filter(r=>safeInt(r.S)>=7||classAP(r.AP)!=='L')
+    .sort((a,b)=>safeInt(b.S)-safeInt(a.S)).slice(0,15)
+    .map(r=>`  ${r.PROCESS} | ${r.FM.replace(/\n/g,'·').slice(0,25)} | S=${r.S} O=${r.O} D=${r.D} AP=${r.AP} | DC:${(r.DC||'').slice(0,25)}`).join('\n');
 
-## 文件：${fname}
-工序：${stats.nProc}个 | 分析条目：${stats.n}条 | AP: H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
-PFMEA识别率：${stats.recRate}%（${stats.fullProcs}/${stats.nProc}工序6维度全覆盖）
-平均S：${stats.avgS} | 平均D：${stats.avgD} | PC模板化：${Math.round(stats.pcTpl/stats.n*100)}% | 高D值低效DC：${stats.dcBad}条
+  // ── 模板化PC示例（直接引用）──
+  const tplRows=rows.filter(r=>TEMPLATES.filter(t=>r.PC&&r.PC.includes(t)).length>=2).slice(0,3);
+  const tplEx=tplRows.map(r=>`  ${r.PROCESS}: PC="${(r.PC||'').slice(0,60)}..."`).join('\n');
 
-## 高风险条目（前12条）
-  ${highRiskAll}
+  // ── S/D分布 ──
+  const sFreq={},dFreq={};
+  rows.forEach(r=>{const sv=r.S||'';const dv=r.D||'';sFreq[sv]=(sFreq[sv]||0)+1;dFreq[dv]=(dFreq[dv]||0)+1;});
+  const topS=Object.entries(sFreq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`S${k}:${v}条`).join(', ');
+  const topD=Object.entries(dFreq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`D${k}:${v}条`).join(', ');
 
-## PC模板化示例
+  return `你是资深AIAG-VDA PFMEA评审专家（机器人制造15年），精通减速机/轴承/导轨/线束/传感器/润滑脂/装配精度等工艺失效模式。
+
+## 被评审文件：${fname}
+工序数：${stats.nProc}个 | 5M1E条目：${stats.n}条 | AP: H=${stats.apH}/M=${stats.apM}/L=${stats.apL}
+S值分布：${topS} | D值分布：${topD}
+PC模板化：${Math.round(stats.pcTpl/Math.max(1,stats.n)*100)}%（${stats.pcTpl}条） | 高D值低效DC：${stats.dcBad}条
+
+## 高风险条目（S≥7或AP-H/M，共${stats.apH+stats.apM}条，按S降序）
+${hiRisk||'  无高风险条目'}
+
+## PC高度模板化示例
 ${tplEx||'  无明显模板化'}
 
-## 各工序FM摘要（${procMap.size}个工序）
-${procLines.join('\n')}
+## 各工序完整FM/FC/S/O/D数据（共${procMap.size}个工序）
+${procBlocks.join('\n\n')}
 
-## 核心评审任务
-**重点：逐工序识别失效模式覆盖完整性——该工序类型在行业中通常需要识别哪些FM，当前PFMEA遗漏了什么**
+---
+## 评审要求（严格遵守）
 
-对每个工序：
-1. 基于工序名称判断工序类型（减速机安装/轴承装配/导轨安装/线束走线/传感器安装/螺钉紧固/润滑脂涂覆等）
-2. 列出该类工序行业标准应覆盖的典型FM清单（来自你的专业知识库）
-3. 对比当前PFMEA已有的FM，识别**遗漏的FM（知识库未覆盖项）**
-4. 给出3条针对性改进建议
+**你的输出必须满足以下要求，否则无效：**
 
-## 输出（严格JSON，中文）
-\`\`\`json
+1. **所有分析必须引用具体工序名** — 禁止写泛泛的"某些工序"，必须写出"X工序（S=Y/O=Z/D=W）"
+2. **缺点(weaknesses)每条必须** — 指明具体工序名+FM内容+S/O/D数值，说明具体问题和危害
+3. **升级方向(upgradeDirections)必须** — from描述具体现状（引用工序名+数值），to描述可操作的改进目标
+4. **优先行动(priorityActions)必须** — 指明受影响的具体工序列表，当前S/O/D，具体改进操作，预期效果
+5. **知识库缺口(libGaps)基于行业知识** — 判断该工序类型（如减速机总装/轴承压装/导轨安装/线束敷设/传感器安装等）在行业FMEA中通常需要识别但当前PFMEA遗漏的FM，每条说明为何重要
+6. **改进建议(suggestions)必须具体** — 说明当前问题→具体操作步骤+预期效果，不能泛泛
+
+**参考格式示例（严格模仿这种具体程度）：**
+- 缺点示例："充电线束铺设（S=7/O=4/D=7）：FC仍为螺钉类描述，未识别弯折半径无约束/走线路径无固定通道，DC仅'跨部门评审'，D=7意味着几乎无法发现失效"
+- 升级方向示例：from:"主控线束安装(O=6/D=7)DC仅Checklist，探测手段几乎无效" → to:"增加装配后上电导通测试+走线路径拍照留存，D值从7降至4"
+- libGaps示例："【遗漏FM】减速机安装后空载运转异响/卡阻未识别——该类工序必检项，轴承损伤或安装方向错误的主要检测手段"
+
+## 输出（纯JSON，直接以{开头，不要任何解释文字）
 {
-  "initGrade": "B-",
-  "initScore": 62,
-  "optGrade": "B+",
-  "optScore": 78,
-  "initSummary": "2-3句综合评价，必须引用具体工序名和S/O/D数值",
-  "coreFindings": "核心问题（120字内），引用具体工序名和FM内容",
+  "initGrade": "等级",
+  "initScore": 分数,
+  "optGrade": "优化后等级",
+  "optScore": 优化后分数,
+  "initSummary": "2-3句，必须引用具体工序名和S/O/D数值，说明最突出的质量状态",
+  "coreFindings": "核心问题（150字内），引用3-5个具体工序名，说明最严重的系统性问题和危害",
   "upgradeDirections": [
-    {"from": "具体现状（引用工序名+数值）", "to": "具体改进目标（可操作）"},
+    {"from": "具体工序名（S=x/O=x/D=x）的具体现状描述", "to": "具体可操作的目标描述"},
     {"from": "...", "to": "..."},
     {"from": "...", "to": "..."},
     {"from": "...", "to": "..."}
   ],
   "priorityActions": [
-    {"label": "≤4字", "color": "#2c5fc0", "text": "具体操作（工序名+S/O/D+改进手段+预期效果，80字内）"},
+    {"label": "≤4字行动标签", "color": "#颜色代码", "text": "涉及工序名列表+当前问题+具体操作+预期效果（100字内）"},
     {"label": "...", "color": "...", "text": "..."},
     {"label": "...", "color": "...", "text": "..."}
   ],
-  "expectedChange": "执行后预期改善效果，含具体数字",
+  "expectedChange": "执行后预期改善，含：高风险条目从X条降至Y条，D值从X降至Y，AP-H从X降至Y",
   "strengths": [
-    {"tag": "标签", "detail": "引用数据的具体描述（40字内）"},
+    {"tag": "优点标签", "detail": "引用具体数据的描述（工序数/条目数/分布数据）"},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."},
     {"tag": "...", "detail": "..."}
   ],
   "weaknesses": [
-    {"level": "高", "title": "问题标题", "detail": "工序名+FM内容+S/O/D+具体问题（70字内）"},
+    {"level": "高", "title": "问题标题（含工序名）", "detail": "必须含工序名+FM文本+S/O/D数值+具体危害（80字内）"},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
     {"level": "高", "title": "...", "detail": "..."},
@@ -470,32 +492,31 @@ ${procLines.join('\n')}
     {"level": "中", "title": "...", "detail": "..."}
   ],
   "improvements": {
-    "A": ["工序名：具体操作（当前状态→改后状态+工具/方法+预期效果）", "...", "...", "..."],
+    "A": ["工序名：当前FC/PC/DC描述→具体修改内容+工具/方法+预期效果", "...", "...", "..."],
     "B": ["...", "...", "...", "...", "..."],
-    "C": ["...", "...", "...", "...", "..."]
+    "C": ["...", "...", "...", "..."]
   },
-  "optSummary": "优化后预期状态（2句，含数字）",
-  "coreRequirements": "核心要求（3-4条，每条含量化指标）",
+  "optSummary": "优化后预期状态（2句，含D值变化、AP-H数量、FM覆盖率等具体数字）",
+  "coreRequirements": "核心要求（3-4条，每条含量化目标）",
   "procDetails": [
     {
-      "name": "工序名（与输入完全一致）",
-      "fmCoverage": 65,
-      "lawFMs": ["当前PFMEA中法维度已识别的FM1", "FM2", "FM3"],
+      "name": "工序名（与输入一致）",
+      "fmCoverage": FM覆盖完整率0-100,
+      "lawFMs": ["该工序法维度当前已识别的具体FM1（原文或精简）", "FM2", "FM3"],
       "libGaps": [
-        "【遗漏FM】该工序类型通常还需识别：具体FM描述（说明为何重要）",
+        "【遗漏FM】基于行业知识该工序类型还需识别：具体FM（说明为何重要、行业发生频率）",
         "【遗漏FM】...",
         "【遗漏FM】..."
       ],
       "suggestions": [
-        "针对该工序的具体改进：当前问题→具体操作+预期效果",
+        "当前具体问题（引用S/O/D）→具体操作步骤→预期效果",
         "...",
         "..."
       ]
     }
   ]
 }
-\`\`\`
-注意：procDetails必须包含全部${procMap.size}个工序。libGaps是基于行业知识的FM完整性缺口，不是当前PFMEA的技术错误。每个工序至少2条libGaps。`;
+注意：procDetails必须包含全部${procMap.size}个工序，按输入顺序。`;
 }
 
 // ══════════════════════════════════════
@@ -523,7 +544,10 @@ async function startReview(){
         const prompt=buildPrompt(pfmea.rows,stats,files[1].name);
         const raw=await callClaude(apiKey,prompt);
         const m=raw.match(/```json\s*([\s\S]*?)\s*```/);
-        aiResult=JSON.parse(m?m[1]:raw);
+        let js=m?m[1]:raw;
+        const si=js.indexOf('{'),ei=js.lastIndexOf('}');
+        if(si>=0&&ei>si)js=js.slice(si,ei+1);
+        aiResult=JSON.parse(js);
         setLoading(true,'AI评审完成，正在生成报告...',90);
       }catch(e){
         console.warn('AI分析失败，切换规则引擎：',e.message);
