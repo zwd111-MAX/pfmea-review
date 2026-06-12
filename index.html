@@ -165,7 +165,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
           style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
           选择文件
         </button>
-        <input type="file" id="fi1" accept=".xlsx,.xls" style="display:none"
+        <input type="file" id="fi1" accept=".xlsx,.xls"
+          style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
           onchange="handleFile(1,this)">
       </div>
       <!-- ② 失效模式库 -->
@@ -178,7 +179,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
           style="margin-top:8px;padding:5px 16px;background:#1a2e5a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
           选择文件
         </button>
-        <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none"
+        <input type="file" id="fi2" accept=".xlsx,.xls"
+          style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
           onchange="handleFile(2,this)">
       </div>
     </div>
@@ -193,7 +195,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
         style="padding:4px 12px;background:#e0eefc;color:#1a2e5a;border:1px solid #a0c8e8;border-radius:6px;cursor:pointer;font-size:11px;white-space:nowrap">
         更新经验库
       </button>
-      <input type="file" id="fi3" accept=".json,.xlsx,.xls" style="display:none"
+      <input type="file" id="fi3" accept=".json,.xlsx,.xls"
+        style="position:absolute;clip:rect(0,0,0,0);width:1px;height:1px"
         onchange="handleFile(3,this)">
     </div>
 
