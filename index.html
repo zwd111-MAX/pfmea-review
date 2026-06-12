@@ -136,14 +136,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",s
     <input type="file" id="fi2" accept=".xlsx,.xls" style="display:none">
 
     <div class="api-section">
-      <label>🤖 Claude AI 分析（可选，大幅提升报告深度）</label>
-      <div class="api-desc">输入 Claude API Key，将调用 claude-sonnet-4-6 对PFMEA进行专业分析，结合行业知识库给出深度评审结论</div>
-      <div class="api-input-row">
-        <input class="api-input" id="apiKey" type="password" placeholder="sk-ant-api03-xxxxxxxx" oninput="checkApiKey()">
-        <span class="api-status" id="apiStatus"></span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="margin:0">🤖 Claude AI 深度分析</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:normal">
+          <input type="checkbox" id="aiEnabled" checked onchange="toggleAI()" style="width:16px;height:16px">
+          启用 AI 分析
+        </label>
       </div>
-      <div class="api-tip">
-        在 <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> 获取 API Key · 不填则使用内置规则引擎
+      <div class="api-desc">使用 Claude AI 结合行业知识库（历史案例+工艺设计准则）进行深度评审，不启用则使用内置规则引擎</div>
+      <div id="aiKeyBlock">
+        <div class="api-input-row">
+          <input class="api-input" id="apiKey" type="password" value="sk-eictAZQygGpL1qX4J8ntEzmB5FGbC6L2Vbtp4MiRMMkcDyRd" oninput="checkApiKey()">
+          <span class="api-status" id="apiStatus" style="color:#27ae60">✓ 已配置</span>
+        </div>
+        <input class="api-input" id="apiBase" type="text" value="https://aigw.gino.plus" placeholder="API Base URL（默认官方）" style="margin-top:6px;font-size:11px;color:#666">
+        <div class="api-tip">API Key 来自本机配置（已自动填入）· 不启用则使用内置规则引擎</div>
       </div>
     </div>
 
@@ -216,11 +223,15 @@ function updBtn(){
   if(files[1]){b.disabled=false;b.textContent='🚀 开始AI联动评审'}
   else{b.disabled=true;b.textContent='请先上传 PFMEA 文件'}
 }
+function toggleAI(){
+  const on=document.getElementById('aiEnabled').checked;
+  document.getElementById('aiKeyBlock').style.display=on?'':'none';
+}
 function checkApiKey(){
   const k=document.getElementById('apiKey').value.trim();
   const s=document.getElementById('apiStatus');
   if(!k){s.textContent='';return}
-  if(k.startsWith('sk-ant-')||k.startsWith('sk-')){s.textContent='✓ 格式正确';s.style.color='#27ae60'}
+  if(k.startsWith('sk-')){s.textContent='✓ 格式正确';s.style.color='#27ae60'}
   else{s.textContent='⚠ 格式有误';s.style.color='#e74c3c'}
 }
 function setLoading(on,txt,pct){
@@ -418,7 +429,8 @@ function builtinEvaluate(rows,lib,fname1){
 // Claude API 调用
 // ══════════════════════════════════════════════════
 async function callClaude(apiKey,prompt){
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+  const baseUrl=(document.getElementById('apiBase').value||'https://api.anthropic.com').replace(/\/$/,'');
+  const resp=await fetch(baseUrl+'/v1/messages',{
     method:'POST',
     headers:{
       'Content-Type':'application/json',
@@ -528,7 +540,8 @@ ${procSummary}
 let lastEv=null;
 
 async function startReview(){
-  const apiKey=document.getElementById('apiKey').value.trim();
+  const aiEnabled=document.getElementById('aiEnabled').checked;
+  const apiKey=aiEnabled?document.getElementById('apiKey').value.trim():'';
   setLoading(true,'正在读取 PFMEA 文件...',10);
   try{
     const wb1=await readFile(files[1]);
